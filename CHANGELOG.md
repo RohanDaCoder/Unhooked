@@ -1,8 +1,15 @@
 # Changelog
 
-All notable changes to Feurstagram should be documented in this file.
+All notable changes to Unhooked should be documented in this file.
 
 ## Unreleased
+
+### Changed
+- **Rebrand: Feurstagram is now Unhooked.** Code namespaces
+  (`com.unhooked.*`), clone package (`com.instagram.android.unhooked`),
+  prefs (`unhooked_prefs`), build output (`unhooked.apk`), update feed
+  (`jean-voila/Unhooked`), and all docs/site strings renamed. Clean break:
+  reinstall required, previous settings do not migrate.
 
 ### Added
 - **Allow screenshots** toggle (Settings → Privacy, off by default): strips

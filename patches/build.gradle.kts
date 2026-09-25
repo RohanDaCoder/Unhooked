@@ -1,10 +1,10 @@
-group = "com.feurstagram"
+group = "com.unhooked"
 
 patches {
     about {
-        name = "Feurstagram Patches"
+        name = "Unhooked Patches"
         description = "Distraction-free Instagram: blocks the feed, stories, explore, reels, ads and suggestions, with a runtime toggle and an optional permanent lock."
-        source = "git@github.com:jeanherail/Feurstagram.git"
+        source = "git@github.com:jeanherail/Unhooked.git"
         author = "Jean Herail"
         contact = "na"
         website = "na"

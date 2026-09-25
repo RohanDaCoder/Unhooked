@@ -1,15 +1,15 @@
-# AGENTS.md — Feurstagram
+# AGENTS.md — Unhooked
 
 Morphe bytecode patches (Kotlin) + runtime extension (Java), applied to a stock
-Instagram APK to produce `feurstagram.apk`. Two modules, one pipeline.
+Instagram APK to produce `unhooked.apk`. Two modules, one pipeline.
 
 ## Layout
 
-- `patches/src/main/kotlin/com/feurstagram/patches/<area>/` — patch definitions
+- `patches/src/main/kotlin/com/unhooked/patches/<area>/` — patch definitions
   (`network`, `settings`, `screenshot`, `display`, `signature`, `media`, `debug`, `clone`).
-- `extensions/extension/src/main/java/com/feurstagram/extension/` — runtime helpers
+- `extensions/extension/src/main/java/com/unhooked/extension/` — runtime helpers
   merged into the APK (`Config`, `Settings`, feature classes).
-- `build.sh` — full pipeline: gradle bundle → Morphe patch → sign → `feurstagram.apk`.
+- `build.sh` — full pipeline: gradle bundle → Morphe patch → sign → `unhooked.apk`.
 - `build/patch-report.json` — machine-readable patch result (see Verification).
 - `docs/` — mostly website; `docs/BUILD_FROM_SOURCE.md` (build reqs),
   `docs/DESIGN.md` (UI rules), `docs/superpowers/plans/` (feature plans).
@@ -28,7 +28,7 @@ No `src/test` anywhere; `:patches:test` is `NO-SOURCE`. Verification is:
 Then check `build/patch-report.json`: all patches under `appliedPatches`,
 `failedPatches: []`. A `BUILD SUCCESSFUL` alone proves nothing about patch
 application. On-device smoke + `logcat -d *:E` for `AndroidRuntime` is the final
-gate. Clone package id: `com.instagram.android.feurstagram`.
+gate. Clone package id: `com.instagram.android.unhooked`.
 
 Setup prerequisites: JDK 21, Android SDK, and a GitHub token with
 `read:packages` (`~/.gradle/gradle.properties` as `gpr.user`/`gpr.key`, or

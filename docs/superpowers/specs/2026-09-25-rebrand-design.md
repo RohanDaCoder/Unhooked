@@ -29,7 +29,11 @@ Current touchpoints (verified by grep):
    is chosen.
 3. Compatibility: clean break. No `feurstagram_prefs` migration, no dual
    `REPO` fallback. Old installs reinstall. New keystore + alias.
-4. Brand name: NOT YET CHOSEN. All maps below are name-agnostic.
+4. Brand name: **Unhooked** (`Unhooked` / `unhooked` / `UNHOOKED`).
+   Derived tokens: clone package `com.instagram.android.unhooked`, prefs
+   `unhooked_prefs`, APK `unhooked.apk`, keystore `unhooked.keystore`
+   (alias `unhooked`), env `UNHOOKED_*`, `USER_AGENT Unhooked-UpdateCheck`,
+   repo `jean-voila/Unhooked`.
 
 ## Token map
 
@@ -93,15 +97,17 @@ Order is load-bearing: code+build first so verification gates docs/assets.
 5. AGENTS.md gate: `Readme.md` + `CHANGELOG.md` updated; mirror previous
    feature commit.
 
-## Blocked on (required before implementation)
+## Resolved during implementation (2026-09-25)
 
-1. `Brand` / `brand` / `BRAND` / `Repo` values (exact spelling/casing).
-2. New clone package suffix confirm (default: `com.instagram.android.<brand>`).
-3. Repo move: same owner + renamed repo, or new owner? (drives `REPO`,
-   site URLs, badges).
-4. New contact handles (email, Instagram, Discord) or keep existing links.
-5. Icon direction (redraw vs. recolor) — visual question, companion offered
-   at implementation time if useful.
+1. ~~`Brand` / `brand` / `BRAND` / `Repo` values~~ → **Unhooked** (see Decisions).
+2. Clone package suffix → default `com.instagram.android.unhooked` confirmed.
+3. Repo move → same owner, renamed repo assumed (`jean-voila/Unhooked`);
+   **GitHub repo must actually be renamed**, or the update check 404s.
+4. Contact handles → converted to `unhooked@gmail.com` /
+   `@unhooked_official`; **must be claimed** (or those two spots reverted).
+5. Icon direction → still open; all binary assets (`app_icon*.png`,
+   `preview.png`, `screens.png`, `tuto.gif`, `press/`, `social-preview.png`,
+   `.sketch` sources) flagged for regeneration before release.
 
 ## Out of scope
 

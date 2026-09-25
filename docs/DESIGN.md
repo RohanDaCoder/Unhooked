@@ -1,6 +1,6 @@
-# Feurstagram design guidelines
+# Unhooked design guidelines
 
-Everything Feurstagram draws — the settings page, the update pages, the confirmation
+Everything Unhooked draws — the settings page, the update pages, the confirmation
 cards, the first-run guide — follows **Material 3 Expressive**, in a **monochrome dark
 scheme with white as the only accent**.
 
@@ -8,7 +8,7 @@ Two hard rules:
 
 1. **No hue.** No purple, no brand yellow, no red. If something needs emphasis it gets
    white, more weight, or more space — not a colour.
-2. **No bundled resources.** Feurstagram is merged into Instagram's APK by a patcher; it
+2. **No bundled resources.** Unhooked is merged into Instagram's APK by a patcher; it
    has no `res/` of its own. Every drawable is a `GradientDrawable` built at runtime, every
    layout is written in code. This is why the tokens below are Java constants rather than
    a theme.

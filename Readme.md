@@ -1,9 +1,9 @@
 <div align="center">
-  <img src="docs/app_icon.png" alt="Feurstagram logo" width="128" height="128">
-  <h1>Feurstagram</h1>
+  <img src="docs/app_icon.png" alt="Unhooked logo" width="128" height="128">
+  <h1>Unhooked</h1>
   <p><strong>Instagram without Reels, feed, Explore or ads.</strong></p>
   <p>
-    Feurstagram is <a href="https://jean-voila.github.io/FeurStagram/instagram-without-reels/">Instagram without Reels</a>:
+    Unhooked is <a href="https://jean-voila.github.io/Unhooked/instagram-without-reels/">Instagram without Reels</a>:
     an open-source patch for the official Android app that removes the feed,
     Reels, Explore, ads and telemetry, while keeping DMs, stories, search,
     notifications and profiles.
@@ -11,11 +11,11 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/jean-voila/Feurstagram/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jean-voila/Feurstagram?style=flat-square&label=release&color=10a37f"></a>
-  <a href="https://github.com/jean-voila/Feurstagram/releases/latest"><img alt="Download APK, total downloads" src="https://img.shields.io/github/downloads/jean-voila/FeurStagram/total?style=flat-square&label=Download%20APK&color=10a37f"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/jean-voila/Feurstagram?style=flat-square&color=6b7280"></a>
+  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jean-voila/Unhooked?style=flat-square&label=release&color=10a37f"></a>
+  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><img alt="Download APK, total downloads" src="https://img.shields.io/github/downloads/jean-voila/Unhooked/total?style=flat-square&label=Download%20APK&color=10a37f"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/jean-voila/Unhooked?style=flat-square&color=6b7280"></a>
   <a href="https://discord.gg/Z9QvMw8s76"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white"></a>
-  <a href="https://www.instagram.com/feurstagram_official/"><img alt="Instagram updates" src="https://img.shields.io/badge/instagram-updates-E4405F?style=flat-square&logo=instagram&logoColor=white"></a>
+  <a href="https://www.instagram.com/unhooked_official/"><img alt="Instagram updates" src="https://img.shields.io/badge/instagram-updates-E4405F?style=flat-square&logo=instagram&logoColor=white"></a>
 </p>
 
 <p align="center">
@@ -24,11 +24,11 @@
   <a href="https://buymeacoffee.com/jean_voila"><img alt="Buy Me A Coffee" src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20the%20Project-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black"></a>
 </p>
 <p align="center">
-  <img src="https://komarev.com/ghpvc/?username=jean-voila-feurstagram&label=Views&color=gray&style=flat" alt="Views">
+  <img src="https://komarev.com/ghpvc/?username=jean-voila-unhooked&label=Views&color=gray&style=flat" alt="Views">
 </p>
 
 <p align="center">
-  <a href="https://github.com/jean-voila/Feurstagram/releases/latest"><strong>Download APK</strong></a>
+  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><strong>Download APK</strong></a>
   ·
   <a href="docs/INSTALL.md">Install</a>
   ·
@@ -42,11 +42,11 @@
   ·
   <a href="https://buymeacoffee.com/jean_voila">Buy me a coffee</a>
   ·
-  <a href="https://github.com/jean-voila/Feurstagram/issues">Issues</a>
+  <a href="https://github.com/jean-voila/Unhooked/issues">Issues</a>
 </p>
 
 <p align="center">
-  <img src="docs/preview.png" alt="Feurstagram social preview" width="720">
+  <img src="docs/preview.png" alt="Unhooked social preview" width="720">
 </p>
 
 ## What it keeps and blocks
@@ -61,26 +61,26 @@
 ## Preview
 
 <p align="center">
-  <img src="docs/screens.png" alt="Feurstagram screenshots" width="680">
+  <img src="docs/screens.png" alt="Unhooked screenshots" width="680">
 </p>
 
 <p align="center">
-  <img src="docs/tuto.gif" alt="Feurstagram settings tutorial" width="300">
+  <img src="docs/tuto.gif" alt="Unhooked settings tutorial" width="300">
 </p>
 
 ## Is it safe?
 
-Feurstagram does not collect, proxy, store, or transmit your credentials.
+Unhooked does not collect, proxy, store, or transmit your credentials.
 
 It patches the official Instagram Android app to remove distracting features. The patches are open source and documented, so you can inspect what is changed.
 
 For maximum trust, you can build the APK yourself instead of downloading a prebuilt release.
 
-That said, Feurstagram is an unofficial project and is not affiliated with Instagram or Meta. It is a modified APK installed outside the Play Store, so Android may show installation warnings. Using a modified client may violate Instagram's terms of service. Use it at your own risk.
+That said, Unhooked is an unofficial project and is not affiliated with Instagram or Meta. It is a modified APK installed outside the Play Store, so Android may show installation warnings. Using a modified client may violate Instagram's terms of service. Use it at your own risk.
 
-## What Feurstagram does NOT do
+## What Unhooked does NOT do
 
-Feurstagram does not:
+Unhooked does not:
 
 - bypass Instagram login;
 - collect your password or session tokens;
@@ -90,15 +90,15 @@ Feurstagram does not:
 - sell or transmit user data;
 - claim affiliation with Instagram or Meta.
 
-## Why Feurstagram?
+## Why Unhooked?
 
-Unlike WebView-based alternatives, Feurstagram patches the real Android Instagram app.
+Unlike WebView-based alternatives, Unhooked patches the real Android Instagram app.
 
 Unlike accessibility-service blockers, it does not simply react to the interface after it loads.
 
 Unlike closed-source Instagram mods, every patch is public and auditable.
 
-Feurstagram is built for people who want to keep Instagram's useful social features without the addictive parts.
+Unhooked is built for people who want to keep Instagram's useful social features without the addictive parts.
 
 I built this project for myself as an alternative to [DFInstagram](https://www.distractionfreeapps.com/) which hasn't been maintained for a long time and was difficult to update. I'm sharing it so others can do the same for themselves.
 
@@ -115,15 +115,15 @@ I built this project for myself as an alternative to [DFInstagram](https://www.d
 
 ## How do I get notified when there is a new update ?
 
-Feurstagram checks GitHub for a newer release on every launch and shows a
+Unhooked checks GitHub for a newer release on every launch and shows a
 download prompt when your build is out of date. This **automatic update check**
-is on by default and can be turned off in the Feurstagram settings page
+is on by default and can be turned off in the Unhooked settings page
 (Updates section).
 
-There is also a story on **the official Feurstagram** account every time there
+There is also a story on **the official Unhooked** account every time there
 is an update:
 
-- https://www.instagram.com/feurstagram_official/
+- https://www.instagram.com/unhooked_official/
 
 Just follow this account and you will get a new story on each release.
 
@@ -135,7 +135,7 @@ Join the Discord server to get support, follow updates, and discuss development:
 
 ## Contact
 
-Official email: **[feurstagram@gmail.com](mailto:feurstagram@gmail.com)**. Journalists can find facts, screenshots and logos in the [press kit](https://jean-voila.github.io/FeurStagram/press/).
+Official email: **[unhooked@gmail.com](mailto:unhooked@gmail.com)**. Journalists can find facts, screenshots and logos in the [press kit](https://jean-voila.github.io/Unhooked/press/).
 
 ## Installation
 
@@ -147,7 +147,7 @@ You have two options:
 ## What Gets Disabled
 
 All content blocks are **individual runtime toggles** — long-press the Home
-tab at the bottom-left of the main tab bar to open the Feurstagram settings
+tab at the bottom-left of the main tab bar to open the Unhooked settings
 page and check/uncheck what you want blocked. A single APK covers every
 combination.
 
@@ -213,7 +213,7 @@ device — with:
   landing on it would hand back exactly what you removed.
 - **Updates** — after an update, the first launch shows a **What's new** card with
   that version's release notes. Then, *Automatic update check* (on by default): on launch,
-  Feurstagram checks GitHub for a newer release and, if your build is out of
+  Unhooked checks GitHub for a newer release and, if your build is out of
   date, opens a page showing what changed in it. Choosing *Update* downloads the
   APK on a progress page you can cancel — or leave, in which case the download
   carries on in a notification — then hands it to Android's installer. No
@@ -224,7 +224,7 @@ device — with:
   reachable on any screen size.
 
 Changes persist across restarts (stored in SharedPreferences
-`feurstagram_prefs`).
+`unhooked_prefs`).
 
 Once you change any setting, the page can only be left by restarting: both
 **Done** and **Back** clear the cache and relaunch, so a changed block can
@@ -238,7 +238,7 @@ prevents *relaxing* them: you can still make settings **stricter** (turn a
 block on), but you cannot turn a block back off without reinstalling.
 
 The freeze is captured per settings session, not the instant you flip a
-switch. When you open the settings page, Feurstagram snapshots which surfaces
+switch. When you open the settings page, Unhooked snapshots which surfaces
 are currently blocked; only those stay frozen. A surface you turn on by
 mistake during a session can still be turned back off **until you tap Done** —
 Done clears the cache and restarts, which bakes the new state in as the next
@@ -264,20 +264,20 @@ within the same session instead of forcing a reinstall.
    ```bash
    ./build.sh instagram.apk
    ```
-   Add `--clone` to install Feurstagram **alongside** a stock Instagram (separate
+   Add `--clone` to install Unhooked **alongside** a stock Instagram (separate
    package and data), and `--install` to push it to a connected device:
    ```bash
    ./build.sh instagram.apk --clone --install
    ```
-   The signed result is written to `feurstagram.apk`.
+   The signed result is written to `unhooked.apk`.
 
 ## Project structure
 
 ```
-Feurstagram/
+Unhooked/
 ├── build.sh                      # Build the bundle and apply it to an APK
 ├── patches/                      # Patches (Kotlin): where to inject, by fingerprint
-│   └── src/main/kotlin/com/feurstagram/patches/
+│   └── src/main/kotlin/com/unhooked/patches/
 │       ├── network/              # Network blocking + feed-item filter + following-feed
 │       ├── settings/             # Long-press settings entry point (tab bar)
 │       ├── signature/            # Signing-cert trust bypass (deep links)
@@ -286,7 +286,7 @@ Feurstagram/
 │       ├── debug/                # ADB settings bridge (dev only, --debug)
 │       └── clone/                # Side-by-side package/label rename
 └── extensions/                   # Runtime code (Java), compiled and merged in
-    └── .../com/feurstagram/extension/
+    └── .../com/unhooked/extension/
         ├── Block.java            # URI blocking rules + feed-item type filter
         ├── LimitFeed.java        # Following-feed header rewrite
         ├── Config.java           # SharedPreferences toggles + permanent lock
@@ -301,7 +301,7 @@ Feurstagram/
 
 ## Design
 
-Feurstagram's own screens follow Material 3 Expressive in a monochrome dark scheme —
+Unhooked's own screens follow Material 3 Expressive in a monochrome dark scheme —
 white is the only accent, and everything is built in code because the mod has no
 resources of its own. The tokens, shapes, type scale, component rules and the
 window-inset requirements are written down in [docs/DESIGN.md](docs/DESIGN.md); read it
@@ -309,17 +309,17 @@ before changing or adding any UI.
 
 ## Signing
 
-The bundle is signed during `build.sh`. Set `FEURSTAGRAM_KEYSTORE_PASS` (and
-optionally `FEURSTAGRAM_KEY_PASS`) to sign with `feurstagram.keystore`;
+The bundle is signed during `build.sh`. Set `UNHOOKED_KEYSTORE_PASS` (and
+optionally `UNHOOKED_KEY_PASS`) to sign with `unhooked.keystore`;
 otherwise a throwaway keystore is generated. Reuse the same keystore across
 builds to install updates without uninstalling first.
 
 ## Debugging
 
-Blocked requests surface as `java.io.IOException: Blocked by Feurstagram` in
+Blocked requests surface as `java.io.IOException: Blocked by Unhooked` in
 logcat:
 ```bash
-adb logcat | grep "Blocked by Feurstagram"
+adb logcat | grep "Blocked by Unhooked"
 ```
 
 ## How It Works
@@ -334,7 +334,7 @@ A fingerprint matches the main tab-bar binder and injects a watcher on it. The
 watcher resolves the `feed_tab` id via `Resources.getIdentifier(...)`, grabs
 the Home tab once laid out, and installs a long-press listener. Long-pressing
 opens a full-screen Material dark page: content toggles plus a landing-page
-selector, all backed by `SharedPreferences` (`feurstagram_prefs`). The same
+selector, all backed by `SharedPreferences` (`unhooked_prefs`). The same
 hook installs the navigation-tab/Notes/Instants hiders, the hidden-tab swipe
 skipper and the cold-start landing-page redirect.
 
@@ -363,7 +363,7 @@ hardcoded. Gated on the **Following feed only** toggle.
 
 ### Deep-link signature bypass
 Instagram checks that the running APK is signed by Meta before it follows a deep
-link into its own content. A re-signed FeurStagram build fails that check, so
+link into its own content. A re-signed Unhooked build fails that check, so
 shared links (posts, reels, profiles) silently dropped to the home feed. A patch
 forces Instagram's signing-certificate trust checks to always pass, so it treats
 the build as genuine and deep links resolve normally. It matches on a stable
@@ -423,5 +423,5 @@ This project is released under the GNU General Public License v3.0. See [LICENSE
 
 Built with the [Morphe](https://morphe.software) patcher and adapts Instagram
 patch ideas from [Piko](https://github.com/crimera/piko), both GPLv3. See
-[NOTICE](NOTICE) for attribution. Feurstagram is an independent project, not
+[NOTICE](NOTICE) for attribution. Unhooked is an independent project, not
 affiliated with or endorsed by Morphe or Piko.

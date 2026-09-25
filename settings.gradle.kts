@@ -1,4 +1,4 @@
-rootProject.name = "feurstagram-patches"
+rootProject.name = "unhooked-patches"
 
 pluginManagement {
     repositories {
