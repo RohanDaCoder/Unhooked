@@ -65,7 +65,7 @@ import java.util.Scanner;
  */
 public final class UpdateChecker implements Runnable {
 
-    private static final String REPO = "jean-voila/Unhooked";
+    private static final String REPO = "RohanDaCoder/Unhooked";
     private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
     private static final String LATEST_PAGE = "https://github.com/" + REPO + "/releases/latest";
     private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
