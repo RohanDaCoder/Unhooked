@@ -19,11 +19,6 @@
 </p>
 
 <p align="center">
-  <a href="https://github.com/sponsors/jean-voila"><img alt="Support on GitHub Sponsors" src="https://img.shields.io/badge/GitHub%20Sponsors-Support%20the%20Project-EA4AAA?style=for-the-badge&logo=githubsponsors&logoColor=white"></a>
-  <br><br>
-  <a href="https://buymeacoffee.com/jean_voila"><img alt="Buy Me A Coffee" src="https://img.shields.io/badge/Buy%20Me%20A%20Coffee-Support%20the%20Project-FFDD00?style=for-the-badge&logo=buymeacoffee&logoColor=black"></a>
-</p>
-<p align="center">
   <img src="https://komarev.com/ghpvc/?username=jean-voila-unhooked&label=Views&color=gray&style=flat" alt="Views">
 </p>
 
@@ -37,10 +32,6 @@
   <a href="docs/FAQ.md">FAQ</a>
   ·
   <a href="docs/PRIVACY.md">Privacy</a>
-  ·
-  <a href="https://github.com/sponsors/jean-voila">Support</a>
-  ·
-  <a href="https://buymeacoffee.com/jean_voila">Buy me a coffee</a>
   ·
   <a href="https://github.com/jean-voila/Unhooked/issues">Issues</a>
 </p>
@@ -219,7 +210,6 @@ device — with:
   carries on in a notification — then hands it to Android's installer. No
   browser, no manual download. Turn the check off here if you'd rather look
   yourself.
-- **Donate** — opens the project's [GitHub Sponsors](https://github.com/sponsors/jean-voila) page.
 - **Permanent lock** and **Done** buttons pinned at the bottom so they stay
   reachable on any screen size.
 

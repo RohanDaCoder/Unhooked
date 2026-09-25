@@ -11,6 +11,10 @@ All notable changes to Unhooked should be documented in this file.
   (`jean-voila/Unhooked`), and all docs/site strings renamed. Clean break:
   reinstall required, previous settings do not migrate.
 
+### Removed
+- **Donation links.** GitHub Sponsors and Buy Me A Coffee badges, the
+  website widget, and the in-app Donate buttons are gone.
+
 ### Added
 - **Allow screenshots** toggle (Settings → Privacy, off by default): strips
   FLAG_SECURE from Instagram's windows so screenshots and screen recordings
