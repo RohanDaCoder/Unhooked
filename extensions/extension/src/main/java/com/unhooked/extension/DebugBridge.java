@@ -21,7 +21,7 @@ import java.util.Map;
  * of from the on-screen panel.
  *
  * Only compiled into the APK when the build enables the "Debug bridge" patch
- * ({@code ./build.sh … --debug}); nothing calls {@link #install} otherwise, so a
+ * (`-Pdebug`); nothing calls {@link #install} otherwise, so a
  * release build carries the class but never registers anything.
  *
  * It registers an exported {@link BroadcastReceiver} on the application context,

@@ -42,12 +42,12 @@
 
 ## What it keeps and blocks
 
-| Keep using Instagram for | Remove or block |
-|--------------------------|-----------------|
-| Direct Messages | Endless Home feed |
-| Stories | Reels surfaces |
-| Search and profiles | Explore and suggested-account recommendations |
-| Notifications | Ads, shopping preloads, and telemetry |
+| Keep using Instagram for | Remove or block                               |
+| ------------------------ | --------------------------------------------- |
+| Direct Messages          | Endless Home feed                             |
+| Stories                  | Reels surfaces                                |
+| Search and profiles      | Explore and suggested-account recommendations |
+| Notifications            | Ads, shopping preloads, and telemetry         |
 
 ## Preview
 
@@ -142,37 +142,34 @@ tab at the bottom-left of the main tab bar to open the Unhooked settings
 page and check/uncheck what you want blocked. A single APK covers every
 combination.
 
-| Feature | Default | Toggleable | How |
-|---------|---------|------------|-----|
-| **Home Feed** | Blocked | Yes | Network-level blocking |
-| **Following feed only** | Off | Yes | Feed-request header rewrite |
-| **Explore** | Blocked | Yes | Network-level blocking |
-| **Reels** | Blocked | Yes | Network-level blocking + Tab hidden |
-| **Stories** | Visible | Yes | Network-level blocking |
-| **Suggested accounts** | Blocked | Yes | Network-level + feed-parse blocking |
-| **Instants (+ button in DMs)** | Blocked | Yes | View visibility hidden |
-| **Notes (text bubbles above DMs)** | Blocked | Yes | View visibility hidden |
-| **Ads** | Blocked | Yes | Network-level + feed-parse blocking |
-| **Analytics & telemetry** | Blocked | No | Always blocked |
-| **Shopping / commerce preloads** | Blocked | No | Always blocked |
+| Feature                            | Default | Toggleable | How                                 |
+| ---------------------------------- | ------- | ---------- | ----------------------------------- |
+| **Home Feed**                      | Blocked | Yes        | Network-level blocking              |
+| **Following feed only**            | Off     | Yes        | Feed-request header rewrite         |
+| **Explore**                        | Blocked | Yes        | Network-level blocking              |
+| **Reels**                          | Blocked | Yes        | Network-level blocking + Tab hidden |
+| **Stories**                        | Visible | Yes        | Network-level blocking              |
+| **Suggested accounts**             | Blocked | Yes        | Network-level + feed-parse blocking |
+| **Instants (+ button in DMs)**     | Blocked | Yes        | View visibility hidden              |
+| **Notes (text bubbles above DMs)** | Blocked | Yes        | View visibility hidden              |
+| **Ads**                            | Blocked | Yes        | Network-level + feed-parse blocking |
+| **Analytics & telemetry**          | Blocked | No         | Always blocked                      |
+| **Shopping / commerce preloads**   | Blocked | No         | Always blocked                      |
 
 **Following feed only** is a softer alternative to blocking the Home Feed
 entirely: leave the feed unblocked and turn this on to get a chronological feed
 of just the accounts you follow, with the recommended/ranked posts dropped.
 
-
-
-
 ## What Still Works
 
-| Feature | Status |
-|---------|--------|
-| **Direct Messages** | Works |
-| **Profile** | Works |
-| **Reels in DMs** | Works |
-| **Search** | Works |
-| **Notifications** | Works |
-| **Deep links** | Works |
+| Feature             | Status |
+| ------------------- | ------ |
+| **Direct Messages** | Works  |
+| **Profile**         | Works  |
+| **Reels in DMs**    | Works  |
+| **Search**          | Works  |
+| **Notifications**   | Works  |
+| **Deep links**      | Works  |
 
 ## Settings Page
 
@@ -188,13 +185,13 @@ device — with:
   stays, since long-pressing it is how you get back here. A swipe that would
   land on a hidden tab carries straight on to the next visible one, so a hidden
   section stays hidden instead of being one flick away.
-- **Feed** — *Following feed only*: restrict the Home Feed to accounts you
+- **Feed** — _Following feed only_: restrict the Home Feed to accounts you
   follow (chronological), instead of the recommended feed. Has effect only when
   the Home Feed is left unblocked.
-- **Display** — *Force dark (disable HDR)* (on by default): stops Instagram
+- **Display** — _Force dark (disable HDR)_ (on by default): stops Instagram
   forcing its window into HDR mode, which lifts the black floor and washes out
   the dark UI on HDR OLED screens. Turn it off to keep Instagram's HDR behaviour.
-- **Privacy** — *Allow screenshots* (off by default): strips FLAG_SECURE from
+- **Privacy** — _Allow screenshots_ (off by default): strips FLAG_SECURE from
   Instagram's windows so screenshots and screen recordings work in view-once
   media and disappearing DMs, and drops the screenshot-taken report so the
   sender is not notified.
@@ -203,9 +200,9 @@ device — with:
   icon is hidden can't be picked, and stops being used if you hide it later:
   landing on it would hand back exactly what you removed.
 - **Updates** — after an update, the first launch shows a **What's new** card with
-  that version's release notes. Then, *Automatic update check* (on by default): on launch,
+  that version's release notes. Then, _Automatic update check_ (on by default): on launch,
   Unhooked checks GitHub for a newer release and, if your build is out of
-  date, opens a page showing what changed in it. Choosing *Update* downloads the
+  date, opens a page showing what changed in it. Choosing _Update_ downloads the
   APK on a progress page you can cancel — or leave, in which case the download
   carries on in a notification — then hands it to Android's installer. No
   browser, no manual download. Turn the check off here if you'd rather look
@@ -237,20 +234,22 @@ If you open the page and change nothing, Back simply closes it.
 
 2. **Build and apply:**
    ```bash
-   ./build.sh instagram.apk
+   ./gradlew buildApk "-Papk=instagram.apk"
    ```
-   Add `--clone` to install Unhooked **alongside** a stock Instagram (separate
-   package and data), and `--install` to push it to a connected device:
+   Add `-Pclone` to install Unhooked **alongside** a stock Instagram (separate
+   package and data), and run `installApk` with `-Pinstall` to push it to a
+   connected device:
    ```bash
-   ./build.sh instagram.apk --clone --install
+   ./gradlew installApk "-Papk=instagram.apk" -Pclone -Pinstall
    ```
-   The signed result is written to `unhooked.apk`.
+   The signed result is written to `unhooked.apk`. Set `INPUT_APK` in a local
+   `.env` file (see `.env.example`) to skip `-Papk` entirely.
 
 ## Project structure
 
 ```
 Unhooked/
-├── build.sh                      # Build the bundle and apply it to an APK
+├── build.gradle.kts              # Full pipeline (merge → patch → sign → unhooked.apk)
 ├── patches/                      # Patches (Kotlin): where to inject, by fingerprint
 │   └── src/main/kotlin/com/unhooked/patches/
 │       ├── network/              # Network blocking + feed-item filter + following-feed
@@ -284,15 +283,18 @@ before changing or adding any UI.
 
 ## Signing
 
-The bundle is signed during `build.sh`. Set `UNHOOKED_KEYSTORE_PASS` (and
+The bundle is signed during `buildApk`. Set `UNHOOKED_KEYSTORE_PASS` (and
 optionally `UNHOOKED_KEY_PASS`) to sign with `unhooked.keystore`;
 otherwise a throwaway keystore is generated. Reuse the same keystore across
-builds to install updates without uninstalling first.
+builds to install updates without uninstalling first. Secret values may live in
+a local `.env` file instead of the environment (see `.env.example`);
+environment variables take precedence.
 
 ## Debugging
 
 Blocked requests surface as `java.io.IOException: Blocked by Unhooked` in
 logcat:
+
 ```bash
 adb logcat | grep "Blocked by Unhooked"
 ```
@@ -305,6 +307,7 @@ obfuscated names, so they keep applying across Instagram updates. The runtime
 logic lives in compiled extension classes that are merged into the app.
 
 ### Settings Hook
+
 A fingerprint matches the main tab-bar binder and injects a watcher on it. The
 watcher resolves the `feed_tab` id via `Resources.getIdentifier(...)`, grabs
 the Home tab once laid out, and installs a long-press listener. Long-pressing
@@ -314,11 +317,13 @@ hook installs the navigation-tab/Notes/Instants hiders, the hidden-tab swipe
 skipper and the cold-start landing-page redirect.
 
 ### Network Blocking
+
 A fingerprint matches `TigonServiceLayer.startRequest` (a named class) and
 injects a call on the request URI. Blocked calls throw an `IOException`, so the
 surface fails to load and stays empty.
 
 ### Feed Item Filtering
+
 Network blocking can't touch ads and "suggested" units that Instagram injects
 **inline** into the Home Feed payload — they arrive inside the normal
 `/feed/timeline/` response, not on a separate URL. A second fingerprint matches
@@ -330,6 +335,7 @@ gated on the **Ads** toggle, suggested/netego units on the **Suggested
 accounts** toggle.
 
 ### Following Feed Only
+
 A fingerprint matches the main-feed request class (by its debug-string shape)
 and rewrites the request's `pagination_source` header from the recommended feed
 to `following`, so the Home Feed returns only accounts you follow. The header
@@ -337,6 +343,7 @@ field is obfuscated, so it is resolved dynamically each build rather than
 hardcoded. Gated on the **Following feed only** toggle.
 
 ### Deep-link signature bypass
+
 Instagram checks that the running APK is signed by Meta before it follows a deep
 link into its own content. A re-signed Unhooked build fails that check, so
 shared links (posts, reels, profiles) silently dropped to the home feed. A patch
@@ -346,6 +353,7 @@ error string rather than obfuscated names, so it needs no per-version
 maintenance. Fixes #36 and #106.
 
 ### Force SDR display
+
 Instagram switches its window into HDR mode at runtime (server-gated per
 account), which lifts the black floor on HDR OLED panels and leaves the flat dark
 UI looking washed out for no benefit. A patch reroutes every window colour-mode
@@ -356,21 +364,21 @@ Instagram's original colour mode through untouched. It hooks the framework
 
 #### Blocked network paths
 
-| Path / pattern | Purpose | Toggleable |
-|----------------|---------|------------|
-| `/feed/timeline/` | Home feed posts | Yes |
-| `/feed/reels_tray` | Stories tray | Yes |
-| `/discover/topical_explore` | Explore tab content | Yes |
-| `/clips/home/`, `/clips/discover`, `/clips/get_blend_medias/` | Reels feed + discovery + Blend reels | Yes |
-| `/discover/ayml/`, `/discover/sectioned_ayml/`, `/discover/chaining/`, `/discover/recommended_accounts_for_category/`, `/discover/suggested_businesses/`, `/discover/recs_from_friends_suggestions/`, `/discover/recs_from_friends_user_info/`, `/discover/surface_with_su/`, `/discover/fetch_suggestion_details/`, `/discover/account_discovery/`, `/discover/reshare_suggestions/`, `/fbsearch/accounts_recs/`, `/friendships/feed_favorites_suggestions/`, `/friendships/share_to_friends_story_suggested_users/`, `/direct_v2/search_friending_suggestions/`, `/business/discovery/suggest_business/` | Suggested-account recommendations (profile "Suggested for you", stories-tray injected accounts, search null-state recs, post-follow chaining, friend/business suggestions) | Yes |
-| `/api/v1/ads/` (all `ads/*`), `/feed/async_ads_ranking/`, `/feed/shop_everything_feed_of_ads*`, `/feed/user_interests_contextual_feed_of_ads/`, `/discover/chaining_experience_contextual_ads/`, `/discover/chaining_experience_notification_ads/`, `/direct_v2/ads_for_ctd_ads_thread_view/`, `/direct_v2/should_show_ad_responses_tab/`, `/profile_ads/get_profile_ads/`, `/stories/stories_high_intent_discovery_ads/`, `/stories/stories_intent_aware_ads/`, `/commerce/product_collections/ads_collection_page/` | Sponsored ads injected into the feed, stories, profile, DMs, Explore chaining and commerce | Yes |
-| `/logging/` | Client event logging | No |
-| `/async_ads_privacy/` | Ad-related tracking | No |
-| `/async_critical_notices/` | Engagement nudge analytics | No |
-| `/api/v1/media/.../seen/` (path contains `/api/v1/media/` and `/seen`) | Post “seen” tracking | No |
-| `/api/v1/fbupload/` | Telemetry upload | No |
-| `/api/v1/stats/` | Performance / usage stats | No |
-| `/api/v1/commerce/`, `/api/v1/shopping/`, `/api/v1/sellable_items/` | Shopping / commerce preloads | No |
+| Path / pattern                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Purpose                                                                                                                                                                    | Toggleable |
+| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
+| `/feed/timeline/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Home feed posts                                                                                                                                                            | Yes        |
+| `/feed/reels_tray`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Stories tray                                                                                                                                                               | Yes        |
+| `/discover/topical_explore`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Explore tab content                                                                                                                                                        | Yes        |
+| `/clips/home/`, `/clips/discover`, `/clips/get_blend_medias/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Reels feed + discovery + Blend reels                                                                                                                                       | Yes        |
+| `/discover/ayml/`, `/discover/sectioned_ayml/`, `/discover/chaining/`, `/discover/recommended_accounts_for_category/`, `/discover/suggested_businesses/`, `/discover/recs_from_friends_suggestions/`, `/discover/recs_from_friends_user_info/`, `/discover/surface_with_su/`, `/discover/fetch_suggestion_details/`, `/discover/account_discovery/`, `/discover/reshare_suggestions/`, `/fbsearch/accounts_recs/`, `/friendships/feed_favorites_suggestions/`, `/friendships/share_to_friends_story_suggested_users/`, `/direct_v2/search_friending_suggestions/`, `/business/discovery/suggest_business/` | Suggested-account recommendations (profile "Suggested for you", stories-tray injected accounts, search null-state recs, post-follow chaining, friend/business suggestions) | Yes        |
+| `/api/v1/ads/` (all `ads/*`), `/feed/async_ads_ranking/`, `/feed/shop_everything_feed_of_ads*`, `/feed/user_interests_contextual_feed_of_ads/`, `/discover/chaining_experience_contextual_ads/`, `/discover/chaining_experience_notification_ads/`, `/direct_v2/ads_for_ctd_ads_thread_view/`, `/direct_v2/should_show_ad_responses_tab/`, `/profile_ads/get_profile_ads/`, `/stories/stories_high_intent_discovery_ads/`, `/stories/stories_intent_aware_ads/`, `/commerce/product_collections/ads_collection_page/`                                                                                      | Sponsored ads injected into the feed, stories, profile, DMs, Explore chaining and commerce                                                                                 | Yes        |
+| `/logging/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Client event logging                                                                                                                                                       | No         |
+| `/async_ads_privacy/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Ad-related tracking                                                                                                                                                        | No         |
+| `/async_critical_notices/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Engagement nudge analytics                                                                                                                                                 | No         |
+| `/api/v1/media/.../seen/` (path contains `/api/v1/media/` and `/seen`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Post “seen” tracking                                                                                                                                                       | No         |
+| `/api/v1/fbupload/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Telemetry upload                                                                                                                                                           | No         |
+| `/api/v1/stats/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Performance / usage stats                                                                                                                                                  | No         |
+| `/api/v1/commerce/`, `/api/v1/shopping/`, `/api/v1/sellable_items/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Shopping / commerce preloads                                                                                                                                               | No         |
 
 Note: despite the name, `/feed/reels_tray` is the stories tray endpoint in Instagram internals.
 
@@ -379,9 +387,8 @@ Matching uses `String.contains()` on the URI path. Instagram changes URL shapes 
 ## Updating for New Instagram Versions
 
 Because patches are fingerprint-based, a new Instagram version usually just
-needs a rebuild (`./build.sh <new-instagram.apk>`). If Instagram restructures a
+needs a rebuild (`./gradlew buildApk "-Papk=<new-instagram.apk>"`). If Instagram restructures a
 targeted area, only the affected fingerprint needs adjusting.
-
 
 ## Contributing
 

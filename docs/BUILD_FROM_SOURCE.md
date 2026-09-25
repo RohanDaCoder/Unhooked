@@ -17,25 +17,31 @@ you inspect the patches and avoid trusting a prebuilt APK.
 ## Steps
 
 1. Clone the repository.
+
    ```sh
    git clone https://github.com/jean-voila/Unhooked.git
    cd Unhooked
    ```
 
 2. Build and apply the patches to your Instagram APK.
+
    ```sh
-   ./build.sh instagram.apk
-   ```
-   Add `--clone` to install alongside a stock Instagram, and `--install` to push
-   to a connected device:
-   ```sh
-   ./build.sh instagram.apk --clone --install
+   ./gradlew buildApk "-Papk=instagram.apk"
    ```
 
-3. Install the signed result (if you did not pass `--install`).
+   Add `-Pclone` to install alongside a stock Instagram, and run `installApk`
+   with `-Pinstall` to push to a connected device:
+
+   ```sh
+   ./gradlew installApk "-Papk=instagram.apk" -Pclone -Pinstall
+   ```
+
+3. Install the signed result (if you did not run `installApk -Pinstall`).
    ```sh
    adb install -r unhooked.apk
    ```
+   Set `INPUT_APK` in a local `.env` file (see `.env.example`) to skip
+   `-Papk` entirely.
 
 ## Signing
 

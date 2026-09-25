@@ -9,7 +9,8 @@ Instagram APK to produce `unhooked.apk`. Two modules, one pipeline.
   (`network`, `settings`, `screenshot`, `display`, `signature`, `media`, `debug`, `clone`).
 - `extensions/extension/src/main/java/com/unhooked/extension/` — runtime helpers
   merged into the APK (`Config`, `Settings`, feature classes).
-- `build.sh` — full pipeline: gradle bundle → Morphe patch → sign → `unhooked.apk`.
+- Root `build.gradle.kts` (`buildApk`) — full pipeline: gradle bundle →
+  Morphe patch → sign → `unhooked.apk` (replaces the old `build.sh`).
 - `build/patch-report.json` — machine-readable patch result (see Verification).
 - `docs/` — mostly website; `docs/BUILD_FROM_SOURCE.md` (build reqs),
   `docs/DESIGN.md` (UI rules), `docs/superpowers/plans/` (feature plans).
@@ -22,7 +23,7 @@ No `src/test` anywhere; `:patches:test` is `NO-SOURCE`. Verification is:
 
 ```sh
 .\gradlew.bat :patches:build
-./build.sh <instagram.apk> --clone   # add --install for device deploy
+.\gradlew.bat buildApk -Pclone   # -Papk=<apk> or INPUT_APK in .env; add installApk -Pinstall to deploy
 ```
 
 Then check `build/patch-report.json`: all patches under `appliedPatches`,
@@ -59,11 +60,10 @@ Setup prerequisites: JDK 21, Android SDK, and a GitHub token with
 
 - Quote SDK package names: `android sdk install 'platforms;android-30'` —
   bare `;` splits statements.
-- `build.sh` must run under Git Bash (`& 'C:\Program Files\Git\bin\bash.exe' ./build.sh ...`),
-  not WSL `bash` (chokes on the file's CRLF at `set -euo pipefail`).
-- The stock APK filename contains parens, which break nested shell quoting —
-  copy to a simple name first (`Copy-Item ... ig-base.apk`), delete after.
+- No bash involved: the whole pipeline is Gradle tasks, so there is no Git Bash
+  vs WSL distinction. Quote `-Papk="..."` — the stock APK filename contains
+  parens, which break nested shell quoting.
 - Device work via the `android` CLI (`install --device=... --apks=...`,
-  `layout`, `screen capture`); `adb` only as fallback. Emulator note: QEMU on
-  x86_64 hosts cannot boot `arm64-v8a` images, and this APK ships
-  `lib/arm64-v8a` only — on-device testing needs physical ARM hardware.
+  `layout`, `screen capture`); `adb` only as fallback. Emulator note: x86_64
+  AVDs run x86_64 Instagram builds (verified on `Medium_Phone`, Android 30);
+  arm64-only builds still need physical ARM hardware.

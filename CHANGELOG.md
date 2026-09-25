@@ -5,13 +5,18 @@ All notable changes to Unhooked should be documented in this file.
 ## Unreleased
 
 ### Changed
+
 - **Rebrand: Feurstagram is now Unhooked.** Code namespaces
   (`com.unhooked.*`), clone package (`com.instagram.android.unhooked`),
   prefs (`unhooked_prefs`), build output (`unhooked.apk`), update feed
   (`jean-voila/Unhooked`), and all docs/site strings renamed. Clean break:
   reinstall required, previous settings do not migrate.
+- **Build moved into Gradle.** `build.sh` is deleted; the pipeline is now
+  `./gradlew buildApk "-Papk=<...>"` (`-Pclone`, `-Pinstall`,
+  `-Pdebug`), with the patch receipt still in `build/patch-report.json`.
 
 ### Removed
+
 - **Donation links.** GitHub Sponsors and Buy Me A Coffee badges, the
   website widget, and the in-app Donate buttons are gone.
 - **Permanent lock removed.** Every setting is freely reversible again;
@@ -20,6 +25,7 @@ All notable changes to Unhooked should be documented in this file.
   the official account is gone; "What's new" shows directly after an update.
 
 ### Added
+
 - **Allow screenshots** toggle (Settings → Privacy, off by default): strips
   FLAG_SECURE from Instagram's windows so screenshots and screen recordings
   work in view-once media and disappearing DMs, forces recents thumbnails on,
@@ -28,10 +34,11 @@ All notable changes to Unhooked should be documented in this file.
 ## v446-0-0-49-77
 
 ### Added
+
 - **Follow the official account.** The first launch after installing or updating
   FeurStagram shows a card inviting the user to follow
   [@feurstagram_official](https://www.instagram.com/feurstagram_official/), where every
-  release is announced. *Follow* opens the profile inside the app, *Not now* closes it.
+  release is announced. _Follow_ opens the profile inside the app, _Not now_ closes it.
   "After an install or update" is read from the package's `lastUpdateTime`, not its
   versionName, so a re-release on the same Instagram base counts too; it is shown once per
   install or update, and the "What's new" card only runs once it has been dismissed.
@@ -44,6 +51,7 @@ All notable changes to Unhooked should be documented in this file.
   the official contact address, feurstagram@gmail.com.
 
 ### Fixed
+
 - **Deep links keep working on Instagram 446.** Instagram 446 reshaped the family-app scope
   trust check that the signature-check bypass disables: the static
   `boolean(KeyHash, KeyHash, Z)` became an instance method taking the caller identity and
@@ -54,6 +62,7 @@ All notable changes to Unhooked should be documented in this file.
   GitHub Pages; they now use `/FeurStagram/`.
 
 ### Changed
+
 - **The settings page opens with an animation.** Long-pressing Home now brings the
   Feurstagram settings page in with a short rise-and-fade instead of it appearing at once.
 - Updated to Instagram 446.0.0.49.77.
@@ -63,6 +72,7 @@ All notable changes to Unhooked should be documented in this file.
 ## v445-0-0-45-83
 
 ### Fixed
+
 - **Ad and "suggested" filtering in the feed works again.** The patch that drops
   ad/promo units injected inline into the timeline stopped applying on Instagram
   444: its fingerprint required the `in_feed_survey` unit type, which Instagram
@@ -91,6 +101,7 @@ All notable changes to Unhooked should be documented in this file.
   earlier attempt is abandoned first.
 
 ### Added
+
 - **Rebuilt update flow, as full-screen pages.** "Update available" shows the
   release's own notes (headings, bullets and all); choosing Update opens a
   progress page with a real progress bar, transferred size, percentage and a
@@ -108,6 +119,7 @@ All notable changes to Unhooked should be documented in this file.
   Development only, never enabled in a release.
 
 ### Changed
+
 - **Feurstagram's own screens are redesigned in Material 3 Expressive,
   monochrome.** No more purple: white is the only accent. Options are grouped
   into connected lists with large outer corners, buttons are pills, section
@@ -120,6 +132,7 @@ All notable changes to Unhooked should be documented in this file.
   capped at a readable width on tablets, foldables and wide screens.
 
 ### Changed
+
 - Updated to Instagram 445.0.0.45.83.
 - `build.sh` now reports which patches applied (`build/patch-report.json`), so a
   fingerprint that stops matching is visible instead of silent, and it accepts
@@ -131,18 +144,21 @@ All notable changes to Unhooked should be documented in this file.
 ## v444-0-0-46-85
 
 ### Added
+
 - **Force dark (disable HDR)** toggle (Settings → Display, on by default): stops
   Instagram forcing its window into HDR mode, which lifted the black floor and
   washed out the dark UI on HDR OLED screens. Turn it off to restore Instagram's
   HDR behaviour.
 
 ### Fixed
+
 - **Deep links** into Instagram now open their target (shared posts, reels,
   profiles) instead of dropping to the home feed, via a new signature-check
   bypass that makes Instagram trust the re-signed build. Fixes #36 and #106.
   Thanks @na-ji.
 
 ### Changed
+
 - Updated to Instagram 444.0.0.46.85.
 
 ## Previous releases

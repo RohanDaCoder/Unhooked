@@ -14,7 +14,7 @@ import com.unhooked.patches.shared.Constants.EXTENSION
 private const val DEBUG_CLASS = "Lcom/unhooked/extension/DebugBridge;"
 
 /**
- * Development build only, off by default — enable it with `./build.sh … --debug`
+ * Development build only, off by default — enable it with `-Pdebug`
  * (which passes `-e "Debug bridge"` to the patcher).
  *
  * It registers an exported broadcast receiver so the whole settings store can be
