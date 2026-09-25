@@ -4,7 +4,7 @@ patches {
     about {
         name = "Unhooked Patches"
         description = "Distraction-free Instagram: blocks the feed, stories, explore, reels, ads and suggestions, with a runtime toggle."
-        source = "git@github.com:jeanherail/Unhooked.git"
+        source = "git@github.com:rohandacoder/Unhooked.git"
         author = "Jean Herail"
         contact = "na"
         website = "na"
