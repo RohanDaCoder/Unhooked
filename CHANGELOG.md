@@ -14,6 +14,10 @@ All notable changes to Unhooked should be documented in this file.
 ### Removed
 - **Donation links.** GitHub Sponsors and Buy Me A Coffee badges, the
   website widget, and the in-app Donate buttons are gone.
+- **Permanent lock removed.** Every setting is freely reversible again;
+  nothing freezes, and there is no reinstall to undo a change.
+- **Follow prompt removed.** The first-launch card inviting users to follow
+  the official account is gone; "What's new" shows directly after an update.
 
 ### Added
 - **Allow screenshots** toggle (Settings → Privacy, off by default): strips

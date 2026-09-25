@@ -172,9 +172,9 @@ public final class DebugBridge {
 
     /**
      * {@code --es key <pref> --ez value <bool>} (or {@code --es value <string>}
-     * for {@code landing_page}). Writes go through {@link Config} so the
-     * permanent lock is honoured exactly as it is from the UI; add
-     * {@code --ez force true} to write straight to the store and bypass it.
+     * for {@code landing_page}). Writes go through {@link Config}, exactly as
+     * from the UI; add {@code --ez force true} to write straight to the store
+     * and bypass it.
      */
     private static String set(Intent intent) {
         String key = intent.getStringExtra("key");
@@ -235,7 +235,6 @@ public final class DebugBridge {
         // a default, and getLandingPage() can override what is on disk.
         out.append("--- effective ---\n");
         out.append("landing_page=").append(Config.getLandingPage()).append('\n');
-        out.append("hardcore_mode=").append(Config.isHardcoreMode()).append('\n');
         out.append("pretend_installed_version=").append(pretendInstalledVersion()).append('\n');
         return out.toString();
     }
@@ -307,8 +306,7 @@ public final class DebugBridge {
     }
 
     /**
-     * Wipe every stored preference, permanent lock included, so a lock-related
-     * test can be run again without reinstalling the app.
+     * Wipe every stored preference, so a test can be run again from a clean slate.
      */
     private static String reset() {
         SharedPreferences prefs = prefs();

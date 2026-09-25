@@ -36,9 +36,10 @@ than inventing one locally; that is what keeps the surfaces consistent.
 | `ERROR` / `ON_ERROR` | same as `PRIMARY` / `ON_PRIMARY` | See below |
 | `RIPPLE` | `#26FFFFFF` | Every pressed state |
 
-**Destructive actions are not red.** A monochrome scheme has no red to lean on, so they
-carry the ordinary accent and are made clear by their *wording* — "Enable lock", not
-"Enable" — and by a confirmation card that spells out the consequence.
+**Destructive actions are not red.** A monochrome scheme has no red to lean on, so a
+destructive action would carry the ordinary accent and be made clear by its *wording*
+and by a confirmation card that spells out the consequence. (There are currently none:
+restart is the only confirmation, and it is not destructive.)
 
 Emoji in user-visible strings (release notes) keep their own colours.
 That is fine: they are content, not chrome.
@@ -163,7 +164,7 @@ text by swapping its colour.
 
 - **A task gets a page.** Settings, "Update available", the download progress. Use
   `Settings.newPage(context)` + `Settings.newPageDialog(...)`. Full screen, never a popup.
-- **A question or a notice gets a card.** Restart? Enable the permanent lock? What's new?
+- **A question or a notice gets a card.** Restart? What's new?
   Use `Settings.cardFrame(context)` + `Settings.addCard(...)`, centred, dimmed behind.
 
 The page scaffold is always: headline block → scrolling middle that absorbs the leftover

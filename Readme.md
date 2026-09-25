@@ -210,7 +210,7 @@ device — with:
   carries on in a notification — then hands it to Android's installer. No
   browser, no manual download. Turn the check off here if you'd rather look
   yourself.
-- **Permanent lock** and **Done** buttons pinned at the bottom so they stay
+- The **Done** button is pinned at the bottom so it stays
   reachable on any screen size.
 
 Changes persist across restarts (stored in SharedPreferences
@@ -220,21 +220,6 @@ Once you change any setting, the page can only be left by restarting: both
 **Done** and **Back** clear the cache and relaunch, so a changed block can
 never leave the app in a half-applied state with stale content still loaded.
 If you open the page and change nothing, Back simply closes it.
-
-### Permanent lock
-
-The permanent lock freezes your restrictions for this installation. It only
-prevents *relaxing* them: you can still make settings **stricter** (turn a
-block on), but you cannot turn a block back off without reinstalling.
-
-The freeze is captured per settings session, not the instant you flip a
-switch. When you open the settings page, Unhooked snapshots which surfaces
-are currently blocked; only those stay frozen. A surface you turn on by
-mistake during a session can still be turned back off **until you tap Done** —
-Done clears the cache and restarts, which bakes the new state in as the next
-snapshot. This means a stray tap on a surface (e.g. Stories) is recoverable
-within the same session instead of forcing a reinstall.
-
 
 ## Requirements
 
@@ -279,7 +264,7 @@ Unhooked/
     └── .../com/unhooked/extension/
         ├── Block.java            # URI blocking rules + feed-item type filter
         ├── LimitFeed.java        # Following-feed header rewrite
-        ├── Config.java           # SharedPreferences toggles + permanent lock
+        ├── Config.java           # SharedPreferences toggles
         ├── Settings.java         # Settings dialog
         ├── Display.java          # Window colour-mode control (Force dark / SDR)
         ├── Screenshots.java      # Window flag control (Allow screenshots bypass)

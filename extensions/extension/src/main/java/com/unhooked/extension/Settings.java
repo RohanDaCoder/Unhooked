@@ -111,9 +111,7 @@ public final class Settings {
         tabBar.getViewTreeObserver().addOnGlobalLayoutListener(new HomeTabWatcher(tabBar));
         Hiders.installAll(tabBar);
         Context activity = getActivityContext(tabBar);
-        // The follow card comes first after an install or update; "What's new"
-        // waits until it is dismissed.
-        FollowPrompt.maybeShow(activity, () -> UpdateChecker.checkWhatsNew(activity));
+        UpdateChecker.checkWhatsNew(activity);
         UpdateChecker.check(activity);
     }
 
@@ -391,10 +389,6 @@ public final class Settings {
     // --- The settings page ----------------------------------------------------
 
     private static View buildContent(Context context, Dialog dialog) {
-        // Snapshot block state so the permanent lock freezes only what's blocked now.
-        Config.captureBaseline();
-        boolean hardcore = Config.isHardcoreMode();
-
         final LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(SURFACE);
@@ -411,10 +405,7 @@ public final class Settings {
         header.addView(title);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText(hardcore
-                ? "Permanent lock is on. You can tighten blocks but not loosen them. "
-                        + "Reinstall to fully unlock."
-                : "Choose what to hide. Tap Done to clear the cache and restart.");
+        subtitle.setText("Choose what to hide. Tap Done to clear the cache and restart.");
         body(subtitle);
         subtitle.setPadding(0, dp(context, 6), 0, 0);
         header.addView(subtitle);
@@ -489,28 +480,14 @@ public final class Settings {
         checkUpdate.setOnClickListener(v -> UpdateChecker.checkNow(context));
         column.addView(checkUpdate, stackedButtonParams(context, 12));
 
-        // Pinned action bar. Two equal pills rather than end-aligned buttons: it
-        // cannot overflow, however narrow the screen or long the label.
+        // Pinned action row. A single full-width pill cannot overflow, however
+        // narrow the screen or long the label.
         LinearLayout actions = new LinearLayout(context);
         actions.setOrientation(LinearLayout.HORIZONTAL);
         LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
         actionsLp.setMargins(0, dp(context, 12), 0, 0);
         root.addView(actions, actionsLp);
-
-        Button lock = makeButton(context, "Permanent lock", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        lock.setOnClickListener(v -> {
-            dialog.dismiss();
-            confirmHardcore(context);
-        });
-        if (hardcore) {
-            lock.setEnabled(false);
-            lock.setAlpha(0.38f);
-        }
-        actions.addView(lock, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        View spacer = new View(context);
-        actions.addView(spacer, new LinearLayout.LayoutParams(dp(context, 8), 1));
 
         Button done = makeButton(context, "Done", PRIMARY, ON_PRIMARY, true);
         done.setOnClickListener(v -> {
@@ -542,29 +519,11 @@ public final class Settings {
                 () -> CacheCleaner.clearAndRestart(context));
     }
 
-    private static void confirmHardcore(Context context) {
-        if (context == null) return;
-        if (Config.isHardcoreMode()) {
-            Toast.makeText(context, "Permanent lock is already enabled", Toast.LENGTH_LONG).show();
-            return;
-        }
-        showConfirm(context, "Enable permanent lock?",
-                "This is permanent for this installation. You will no longer be able to "
-                        + "re-enable Home feed, Explore, Reels or Stories without reinstalling the app.",
-                "Enable lock", ERROR, ON_ERROR,
-                () -> {
-                    Config.enableHardcoreMode();
-                    Toast.makeText(context,
-                            "Permanent lock enabled. Reinstall the app to unlock content.",
-                            Toast.LENGTH_LONG).show();
-                });
-    }
-
     // --- Confirmation cards ---------------------------------------------------
 
     /**
-     * A centred card with a title, a body and two actions. Shared by the restart
-     * and permanent-lock prompts, and shaped like {@link UpdateChecker}'s cards.
+     * A centred card with a title, a body and two actions. Used by the restart
+     * prompt, and shaped like {@link UpdateChecker}'s cards.
      */
     public static void showConfirm(Context context, String titleText, String bodyText,
                                    String confirmText, int confirmBg, int confirmFg,
@@ -793,12 +752,6 @@ public final class Settings {
         toggle.setTrackTintList(buildStateList(PRIMARY, OUTLINE_VARIANT));
         toggle.setThumbTintList(buildStateList(PRIMARY, OUTLINE));
         toggle.setOnCheckedChangeListener((btn, isChecked) -> {
-            // Hardcore: a frozen surface cannot be revealed; snap it back to hidden.
-            if (Config.isHardcoreMode() && Config.isLockable(key)
-                    && !Config.hidesSurface(key, isChecked) && Config.wasHiddenAtBaseline(key)) {
-                btn.setChecked(!isChecked);
-                return;
-            }
             Config.setBlocked(key, isChecked);
             Config.setNeedsRestart();
             if (onChanged != null) onChanged.run();
@@ -807,14 +760,6 @@ public final class Settings {
         row.setOnClickListener(v -> {
             if (toggle.isEnabled()) toggle.toggle();
         });
-
-        // Freeze rows whose surface is already hidden under the permanent lock.
-        if (Config.isLockable(key) && Config.isHardcoreMode() && Config.hidesSurface(key, value)) {
-            toggle.setEnabled(false);
-            row.setEnabled(false);
-            row.setClickable(false);
-            row.setAlpha(0.38f);
-        }
     }
 
     private static String supportText(String key) {
@@ -866,8 +811,7 @@ public final class Settings {
         }
 
         // A surface whose nav icon is hidden is not a landing page you can choose:
-        // it would hand back exactly what was hidden, and under the permanent lock
-        // the picker was the one way left to reach a frozen surface (issue #116).
+        // it would hand back exactly what was hidden.
         landingSync[0] = () -> {
             String current = Config.getLandingPage();
             for (int i = 0; i < LANDING_VALUES.length; i++) {

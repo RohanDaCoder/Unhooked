@@ -15,11 +15,9 @@ import java.util.WeakHashMap;
  *
  * Hiding a tab icon (see {@link Hiders}) only removes the button: the main
  * {@code swipeable_tab_view_pager} keeps the page, so a swipe still lands on the
- * surface the user chose to hide — and the permanent lock could be walked around
- * with a flick of the thumb (issues #92 and #121).
+ * surface the user chose to hide (issues #92 and #121).
  *
- * Always on: a tab you removed from the bar should not be one flick away, and a
- * switch to turn that off would be a way around the permanent lock.
+ * Always on: a tab you removed from the bar should not be one flick away.
  *
  * The instant a swipe is released toward a page whose tab is gone, this listener
  * re-aims that same swipe at the nearest still-visible tab in the direction of
