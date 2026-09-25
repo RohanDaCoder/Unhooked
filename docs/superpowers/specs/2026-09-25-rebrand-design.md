@@ -7,7 +7,6 @@ applied to stock Instagram APK, producing `feurstagram.apk`. The brand string
 is load-bearing across code, build, runtime, docs, site, and assets.
 
 Current touchpoints (verified by grep):
-
 - Code namespaces: `com.feurstagram.patches.*`, `com.feurstagram.extension`
   (`ClonePatch.kt:1`, `Constants.kt:9`, `Config.java:1`, `UpdateChecker.java:1`).
 - Build: `settings.gradle.kts:1` (`feurstagram-patches`), `build.sh:34,68-69`
@@ -15,10 +14,10 @@ Current touchpoints (verified by grep):
 - Clone defaults: `ClonePatch.kt:32-48` (`com.instagram.android.feurstagram`,
   `Feurstagram`).
 - Runtime: `Config.java:17` (`feurstagram_prefs`), `UpdateChecker.java:68,72`
-  (`rohandacoder/Feurstagram`, `Feurstagram-UpdateCheck`), `Blocked by Feurstagram`
+  (`jean-voila/Feurstagram`, `Feurstagram-UpdateCheck`), `Blocked by Feurstagram`
   IOException, Settings/Onboarding/FollowPrompt titles, log tags.
 - Docs/site: `Readme.md`, `CHANGELOG.md`, `docs/*.md`, `docs/**/*.html`,
-  `docs/sitemap.xml`, `robots.txt`, `.gitlab/ISSUE_TEMPLATE/*`,
+  `docs/sitemap.xml`, `robots.txt`, `.github/ISSUE_TEMPLATE/*`,
   `REPOSITORY_SETTINGS.md`, release template.
 - Assets: `docs/app_icon.png`, `app_icon_not_rounded.png`, `preview.png`,
   `screens.png`, `tuto.gif`, `docs/press/`, `.sketch` sources.
@@ -34,16 +33,16 @@ Current touchpoints (verified by grep):
    Derived tokens: clone package `com.instagram.android.unhooked`, prefs
    `unhooked_prefs`, APK `unhooked.apk`, keystore `unhooked.keystore`
    (alias `unhooked`), env `UNHOOKED_*`, `USER_AGENT Unhooked-UpdateCheck`,
-   repo `rohandacoder/Unhooked`.
+   repo `jean-voila/Unhooked`.
 
 ## Token map
 
-| Token   | Meaning             | Example   | Used for                                                                                                                                              |
-| ------- | ------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `Brand` | Display/capitalized | `NewName` | App label (`ClonePatch appName`), Settings titles, docs headings, `USER_AGENT` prefix, `Blocked by <Brand>`                                           |
-| `brand` | Lowercase           | `newname` | Package suffix (`com.instagram.android.<brand>`), dirs `com/<brand>/...`, prefs (`<brand>_prefs`), APK (`<brand>.apk`), keystore (`<brand>.keystore`) |
-| `BRAND` | Uppercase           | `NEWNAME` | Env vars (`<BRAND>_KEYSTORE_PASS`, `<BRAND>_KEYSTORE`, `<BRAND>_KEY_ALIAS`)                                                                           |
-| `Repo`  | GitHub repo name    | `NewName` | `UpdateChecker REPO = <owner>/<Repo>`, site URLs (`<owner>.gitlab.io/<Repo>/`), badges, release template                                              |
+| Token | Meaning | Example | Used for |
+|---|---|---|---|
+| `Brand` | Display/capitalized | `NewName` | App label (`ClonePatch appName`), Settings titles, docs headings, `USER_AGENT` prefix, `Blocked by <Brand>` |
+| `brand` | Lowercase | `newname` | Package suffix (`com.instagram.android.<brand>`), dirs `com/<brand>/...`, prefs (`<brand>_prefs`), APK (`<brand>.apk`), keystore (`<brand>.keystore`) |
+| `BRAND` | Uppercase | `NEWNAME` | Env vars (`<BRAND>_KEYSTORE_PASS`, `<BRAND>_KEYSTORE`, `<BRAND>_KEY_ALIAS`) |
+| `Repo` | GitHub repo name | `NewName` | `UpdateChecker REPO = <owner>/<Repo>`, site URLs (`<owner>.github.io/<Repo>/`), badges, release template |
 
 Case-sensitive pass covers all four legacy casings: `Feurstagram`,
 `feurstagram`, `FEURSTAGRAM`, `FeurStagram` (repo-casing in URLs).
@@ -102,7 +101,7 @@ Order is load-bearing: code+build first so verification gates docs/assets.
 
 1. ~~`Brand` / `brand` / `BRAND` / `Repo` values~~ → **Unhooked** (see Decisions).
 2. Clone package suffix → default `com.instagram.android.unhooked` confirmed.
-3. Repo move → same owner, renamed repo assumed (`rohandacoder/Unhooked`);
+3. Repo move → same owner, renamed repo assumed (`jean-voila/Unhooked`);
    **GitHub repo must actually be renamed**, or the update check 404s.
 4. Contact handles → converted to `unhooked@gmail.com` /
    `@unhooked_official`; **must be claimed** (or those two spots reverted).

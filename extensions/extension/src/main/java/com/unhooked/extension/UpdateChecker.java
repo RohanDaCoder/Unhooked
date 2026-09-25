@@ -66,9 +66,9 @@ import java.util.Scanner;
 public final class UpdateChecker implements Runnable {
 
     private static final String REPO = "RohanDaCoder/Unhooked";
-    private static final String LATEST_API = "https://api.gitlab.com/repos/" + REPO + "/releases/latest";
-    private static final String LATEST_PAGE = "https://gitlab.com/" + REPO + "/releases/latest";
-    private static final String RELEASE_BY_TAG = "https://api.gitlab.com/repos/" + REPO + "/releases/tags/";
+    private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
+    private static final String LATEST_PAGE = "https://github.com/" + REPO + "/releases/latest";
+    private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
     private static final String USER_AGENT = "Unhooked-UpdateCheck";
 
     /** Action prefix for the per-session PackageInstaller status callback. */
@@ -147,7 +147,7 @@ public final class UpdateChecker implements Runnable {
     private static String fetch(String url) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestProperty("User-Agent", USER_AGENT);
-        connection.setRequestProperty("Accept", "application/vnd.gitlab+json");
+        connection.setRequestProperty("Accept", "application/vnd.github+json");
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(10000);
         try (InputStream input = connection.getInputStream();

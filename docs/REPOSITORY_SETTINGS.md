@@ -39,6 +39,6 @@ assets/social-preview.png
 
 ## Releases
 
-Use `.gitlab/RELEASE_TEMPLATE.md` when drafting releases.
+Use `.github/RELEASE_TEMPLATE.md` when drafting releases.
 
 Publish SHA256 hashes for every APK artifact in the release notes.
