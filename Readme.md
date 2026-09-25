@@ -3,7 +3,7 @@
   <h1>Unhooked</h1>
   <p><strong>Instagram without Reels, feed, Explore or ads.</strong></p>
   <p>
-    Unhooked is <a href="https://jean-voila.github.io/Unhooked/instagram-without-reels/">Instagram without Reels</a>:
+    Unhooked is <a href="https://rohandacoder.gitlab.io/Unhooked/instagram-without-reels/">Instagram without Reels</a>:
     an open-source patch for the official Android app that removes the feed,
     Reels, Explore, ads and telemetry, while keeping DMs, stories, search,
     notifications and profiles.
@@ -11,19 +11,19 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jean-voila/Unhooked?style=flat-square&label=release&color=10a37f"></a>
-  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><img alt="Download APK, total downloads" src="https://img.shields.io/github/downloads/jean-voila/Unhooked/total?style=flat-square&label=Download%20APK&color=10a37f"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/jean-voila/Unhooked?style=flat-square&color=6b7280"></a>
+  <a href="https://gitlab.com/rohandacoder/Unhooked/releases/latest"><img alt="Latest release" src="https://img.shields.io/gitlab/v/release/rohandacoder/Unhooked?style=flat-square&label=release&color=10a37f"></a>
+  <a href="https://gitlab.com/rohandacoder/Unhooked/releases/latest"><img alt="Download APK, total downloads" src="https://img.shields.io/gitlab/downloads/rohandacoder/Unhooked/total?style=flat-square&label=Download%20APK&color=10a37f"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/gitlab/license/rohandacoder/Unhooked?style=flat-square&color=6b7280"></a>
   <a href="https://discord.gg/Z9QvMw8s76"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white"></a>
   <a href="https://www.instagram.com/unhooked_official/"><img alt="Instagram updates" src="https://img.shields.io/badge/instagram-updates-E4405F?style=flat-square&logo=instagram&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <img src="https://komarev.com/ghpvc/?username=jean-voila-unhooked&label=Views&color=gray&style=flat" alt="Views">
+  <img src="https://komarev.com/ghpvc/?username=rohandacoder-unhooked&label=Views&color=gray&style=flat" alt="Views">
 </p>
 
 <p align="center">
-  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><strong>Download APK</strong></a>
+  <a href="https://gitlab.com/rohandacoder/Unhooked/releases/latest"><strong>Download APK</strong></a>
   ·
   <a href="docs/INSTALL.md">Install</a>
   ·
@@ -33,7 +33,7 @@
   ·
   <a href="docs/PRIVACY.md">Privacy</a>
   ·
-  <a href="https://github.com/jean-voila/Unhooked/issues">Issues</a>
+  <a href="https://gitlab.com/rohandacoder/Unhooked/issues">Issues</a>
 </p>
 
 <p align="center">
@@ -126,7 +126,7 @@ Join the Discord server to get support, follow updates, and discuss development:
 
 ## Contact
 
-Official email: **[unhooked@gmail.com](mailto:unhooked@gmail.com)**. Journalists can find facts, screenshots and logos in the [press kit](https://jean-voila.github.io/Unhooked/press/).
+Official email: **[unhooked@gmail.com](mailto:unhooked@gmail.com)**. Journalists can find facts, screenshots and logos in the [press kit](https://rohandacoder.gitlab.io/Unhooked/press/).
 
 ## Installation
 
@@ -224,7 +224,7 @@ If you open the page and change nothing, Back simply closes it.
 - A GitHub token with the `read:packages` scope in `~/.gradle/gradle.properties`,
   used to fetch the patcher dependency:
   ```properties
-  gpr.user=<your-github-username>
+  gpr.user=<your-gitlab-username>
   gpr.key=<token-with-read:packages>
   ```
 
@@ -404,6 +404,6 @@ This is a personal project I'm sharing with the community. Contributions are wel
 This project is released under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
 
 Built with the [Morphe](https://morphe.software) patcher and adapts Instagram
-patch ideas from [Piko](https://github.com/crimera/piko), both GPLv3. See
+patch ideas from [Piko](https://gitlab.com/crimera/piko), both GPLv3. See
 [NOTICE](NOTICE) for attribution. Unhooked is an independent project, not
 affiliated with or endorsed by Morphe or Piko.

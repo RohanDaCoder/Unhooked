@@ -9,7 +9,7 @@ All notable changes to Unhooked should be documented in this file.
 - **Rebrand: Feurstagram is now Unhooked.** Code namespaces
   (`com.unhooked.*`), clone package (`com.instagram.android.unhooked`),
   prefs (`unhooked_prefs`), build output (`unhooked.apk`), update feed
-  (`jean-voila/Unhooked`), and all docs/site strings renamed. Clean break:
+  (`rohandacoder/Unhooked`), and all docs/site strings renamed. Clean break:
   reinstall required, previous settings do not migrate.
 - **Build moved into Gradle.** `build.sh` is deleted; the pipeline is now
   `./gradlew buildApk "-Papk=<...>"` (`-Pclone`, `-Pinstall`,

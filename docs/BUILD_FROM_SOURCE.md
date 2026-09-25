@@ -9,7 +9,7 @@ you inspect the patches and avoid trusting a prebuilt APK.
 - A GitHub token with the `read:packages` scope in `~/.gradle/gradle.properties`
   (used to fetch the patcher dependency):
   ```properties
-  gpr.user=<your-github-username>
+  gpr.user=<your-gitlab-username>
   gpr.key=<token-with-read:packages>
   ```
 - A supported Instagram APK (arm64-v8a from a trusted source such as APKMirror)
@@ -19,7 +19,7 @@ you inspect the patches and avoid trusting a prebuilt APK.
 1. Clone the repository.
 
    ```sh
-   git clone https://github.com/jean-voila/Unhooked.git
+   git clone https://gitlab.com/rohandacoder/Unhooked.git
    cd Unhooked
    ```
 
