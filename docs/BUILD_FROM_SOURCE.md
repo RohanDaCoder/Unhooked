@@ -56,19 +56,20 @@ keep the same one to reinstall without losing app data.
 ## CI (GitLab, main branch only)
 
 Merging `dev` into `main` is the release act. The pipeline (`.gitlab-ci.yml`)
-has two jobs: `build-apks`, then `publish-release`.
+has three jobs: `build-classic` + `build-clone` in parallel, then
+`publish-release`.
 
-`build-apks` starts with preflight (validates the stock bundle and the
-required variables, failing fast), builds `unhooked-classic.apk` and
-`unhooked-clone.apk`, then gates on `failedPatches == []` **and** a diff of
-the applied list against the per-flavor `.gitlab/expected-patches-*.txt` lists — a silently missing
-patch fails the job. It finishes by verifying both signatures, asserting the
-package identities (`com.instagram.android` vs
-`com.instagram.android.unhooked`), and pinning the release cert when
-`RELEASE_CERT_SHA256` is set.
+Each build job starts with preflight (validates the stock bundle and the
+required variables, failing fast), builds its flavor APK, then gates on
+`failedPatches == []` **and** a diff of the applied list against its
+per-flavor `.gitlab/expected-patches-*.txt` list — a silently missing
+patch fails the job. It finishes by verifying the signature and asserting
+the package identity (`com.instagram.android` vs
+`com.instagram.android.unhooked`).
 
 `publish-release` runs only when no `v<VERSION>` release exists yet
-(re-merges without a bump just build). It uploads both APKs to Generic
+(re-merges without a bump just build). It first pins both APKs to the release
+cert when `RELEASE_CERT_SHA256` is set, then uploads both APKs to Generic
 Packages and creates the GitLab Release with them as assets, which is what
 the in-app updater reads. It hard-fails without the release key.
 

@@ -38,7 +38,6 @@ cache:
     - tools/
     - base.xapk
     - base.url
-    - base.xapk
 
 before_script:
   - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
@@ -52,13 +51,17 @@ before_script:
   - export PATH="$ANDROID_HOME/build-tools/36.0.0:$ANDROID_HOME/platform-tools:$PATH"
   - chmod +x gradlew
 
-build-apks:
+# Flavors build in parallel (separate runners); publish fans in on both.
+.flavor-build:
   stage: build
   image: eclipse-temurin:21-jdk-jammy
   timeout: 45m
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
+
+build-classic:
+  extends: .flavor-build
   script:
     # --- preflight: fail fast on config and inputs, before burning minutes ---
     - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
@@ -78,25 +81,75 @@ build-apks:
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
       fi
-    # --- flavors ---
     # Classic build (replaces stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.xapk" --console=plain
     - cp build/patch-report.json patch-report-classic.json
+    # --- gates: nothing failed AND nothing silently missing (10 patches,
+    # comment-free list so the diff is literal) ---
+    - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
+    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches-classic.txt -
+    # --- verify: signature + identity ---
+    - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
+    - test "$(aapt dump badging unhooked-classic.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android"
+    - ls -la unhooked-classic.apk
+  artifacts:
+    expire_in: 2 weeks
+    paths:
+      - unhooked-classic.apk
+      - patch-report-classic.json
+      - certs-classic.txt
+
+build-clone:
+  extends: .flavor-build
+  script:
+    # --- preflight: same as classic (each flavor is self-sufficient) ---
+    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
+    - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
+    - |
+      if [ ! -f base.xapk ] || [ "$(cat base.url 2>/dev/null)" != "$INPUT_APK_URL" ]; then
+        curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
+        echo "$INPUT_APK_URL" > base.url
+      fi
+    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
+    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
+    - |
+      if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
+        echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
+      fi
     # Clone build (installs alongside stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.xapk" -Pclone --console=plain
     - cp build/patch-report.json patch-report-clone.json
-    # --- gates: nothing failed AND nothing silently missing (per-flavor
-    # lists: classic ships 10 patches, clone 11; the files carry no comments
-    # so the diff is literal) ---
-    - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
+    # --- gates: nothing failed AND nothing silently missing (11 patches) ---
     - test "$(jq '.failedPatches | length' patch-report-clone.json)" = "0"
-    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches-classic.txt -
     - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches-clone.txt -
-    # --- verify: signatures, identities, release-key pin ---
-    - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
+    # --- verify: signature + identity ---
     - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
-    - test "$(aapt dump badging unhooked-classic.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android"
     - test "$(aapt dump badging unhooked-clone.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android.unhooked"
+    - ls -la unhooked-clone.apk
+  artifacts:
+    expire_in: 2 weeks
+    paths:
+      - unhooked-clone.apk
+      - patch-report-clone.json
+      - certs-clone.txt
+
+publish-release:
+  stage: publish
+  image: eclipse-temurin:21-jdk-jammy
+  timeout: 10m
+  interruptible: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: build-classic
+      artifacts: true
+    - job: build-clone
+      artifacts: true
+  script:
+    - VERSION=$(grep '^version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
+    - IG_VERSION=$(aapt dump badging unhooked-classic.apk | grep -o "versionName='[^']*'" | cut -d"'" -f2)
+    - test -n "$VERSION" || (echo "no version in gradle.properties" >&2 && exit 1)
+    # --- cross-flavor verify: both APKs signed with the release key ---
     - |
       # Both sides are normalized (colons stripped) since keytool and
       # apksigner print the same digest with different separators/casing.
@@ -107,29 +160,6 @@ build-apks:
       else
         echo "WARNING: RELEASE_CERT_SHA256 unset — cert pin skipped"
       fi
-    - ls -la unhooked-classic.apk unhooked-clone.apk
-  artifacts:
-    expire_in: 2 weeks
-    paths:
-      - unhooked-classic.apk
-      - unhooked-clone.apk
-      - patch-report-classic.json
-      - patch-report-clone.json
-
-publish-release:
-  stage: publish
-  image: eclipse-temurin:21-jdk-jammy
-  timeout: 10m
-  interruptible: false
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  needs:
-    - job: build-apks
-      artifacts: true
-  script:
-    - VERSION=$(grep '^version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
-    - IG_VERSION=$(aapt dump badging unhooked-classic.apk | grep -o "versionName='[^']*'" | cut -d"'" -f2)
-    - test -n "$VERSION" || (echo "no version in gradle.properties" >&2 && exit 1)
     - |
       if [ "$(curl -s -o /dev/null -w '%{http_code}' "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases/v$VERSION")" = "200" ]; then
         echo "Release v$VERSION already exists — build verified only."

@@ -93,10 +93,10 @@ with it), not the YAML. Tool jars need no manual step:
 
 ## CI / release (GitLab, `main` only)
 
-- Merging `dev` → `main` is the release act: `build-apks` (preflight + both
-  flavors + gates + signature/package/cert checks), then `publish-release`
-  creates `v<VERSION>` with both APKs **iff** that release doesn't exist yet.
-  No tags, no schedules, no MR jobs.
+- Merging `dev` → `main` is the release act: `build-classic` +
+  `build-clone` in parallel (preflight + gates + signature/package checks),
+  then `publish-release` (cert pin + publish) creates `v<VERSION>` with both
+  APKs **iff** that release doesn't exist yet. No tags, no schedules, no MR jobs.
 - Stock base is self-hosted: `unhooked-base/<ig-version>` in this project's
   Package Registry (`glab packages upload/download`). No mirrors anywhere —
   do not reintroduce APKPure/APKMirror URLs.
