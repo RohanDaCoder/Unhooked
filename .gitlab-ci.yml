@@ -1,0 +1,67 @@
+# Unhooked CI — builds both APK flavors on main.
+#
+# Required CI/CD variables (Settings → CI/CD → Variables):
+#   INPUT_APK_URL   URL of the stock arm64-v8a Instagram APK/APKM to patch
+#                   (too big to commit; e.g. a Package Registry file or mirror link).
+#   GITHUB_ACTOR    GitHub username (Morphe registry auth for the Gradle plugin).
+#   GITHUB_TOKEN    GitHub token with read:packages, masked (same).
+# Optional:
+#   UNHOOKED_KEYSTORE_B64   base64 of the release keystore (File variable).
+#   UNHOOKED_KEYSTORE_PASS / UNHOOKED_KEY_ALIAS — release signing. Without them
+#     the APKs are throwaway-signed (fine for testing, not for release).
+#   MORPHE_VERSION / APKEDITOR_VERSION — tool pins (defaults match local dev).
+
+stages:
+  - build
+
+variables:
+  GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
+  ANDROID_HOME: "$CI_PROJECT_DIR/android-sdk"
+  MORPHE_VERSION: "1.16.0"
+  APKEDITOR_VERSION: "1.4.9"
+
+build-apks:
+  stage: build
+  image: eclipse-temurin:21-jdk-jammy
+  timeout: 45m
+  interruptible: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  cache:
+    key: unhooked-main
+    paths:
+      - .gradle/caches/
+      - .gradle/wrapper/
+      - android-sdk/
+  before_script:
+    - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
+    - curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+    - export PATH="$HOME/.local/bin:$PATH"
+    - android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
+    - export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
+    - mkdir -p tools
+    - curl -sSLo "tools/APKEditor-${APKEDITOR_VERSION}.jar" "https://github.com/REAndroid/APKEditor/releases/download/V${APKEDITOR_VERSION}/APKEditor-${APKEDITOR_VERSION}.jar"
+    - curl -sSLo "tools/morphe-desktop-${MORPHE_VERSION}-all.jar" "https://github.com/MorpheApp/morphe-desktop/releases/download/v${MORPHE_VERSION}/morphe-desktop-${MORPHE_VERSION}-all.jar"
+    - curl -sSLo base.apk "$INPUT_APK_URL"
+    - |
+      if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
+        echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
+      fi
+    - chmod +x gradlew
+  script:
+    # Classic build (replaces stock Instagram).
+    - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.apk" --console=plain
+    - cp build/patch-report.json patch-report-classic.json
+    - test "$(jq '.failedPatches | length' build/patch-report.json)" = "0"
+    # Clone build (installs alongside stock Instagram).
+    - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.apk" -Pclone --console=plain
+    - cp build/patch-report.json patch-report-clone.json
+    - test "$(jq '.failedPatches | length' build/patch-report.json)" = "0"
+    - ls -la unhooked-classic.apk unhooked-clone.apk
+  artifacts:
+    expire_in: 2 weeks
+    paths:
+      - unhooked-classic.apk
+      - unhooked-clone.apk
+      - patch-report-classic.json
+      - patch-report-clone.json

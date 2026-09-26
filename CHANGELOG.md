@@ -14,6 +14,11 @@ All notable changes to Unhooked should be documented in this file.
 - **Build moved into Gradle.** `build.sh` is deleted; the pipeline is now
   `./gradlew buildApk "-Papk=<...>"` (`-Pclone`, `-Pinstall`,
   `-Pdebug`), with the patch receipt still in `build/patch-report.json`.
+- **Home is now GitLab (`RohanDaCoder/Unhooked`).** The in-app updater and
+  the site's release feed read the GitLab Releases API; release assets keep
+  the classic/clone APK pair (`-clone.apk` for the clone build). GitHub
+  issue forms are replaced by `.gitlab` templates; the Morphe patcher
+  dependency still comes from GitHub Packages.
 
 ### Removed
 
@@ -30,6 +35,10 @@ All notable changes to Unhooked should be documented in this file.
   FLAG_SECURE from Instagram's windows so screenshots and screen recordings
   work in view-once media and disappearing DMs, forces recents thumbnails on,
   and drops the screenshot-taken report so the sender is not notified.
+- **GitLab CI on main.** `.gitlab-ci.yml` builds `unhooked-classic.apk` and
+  `unhooked-clone.apk` as job artifacts from the arm64-v8a base APK at
+  `INPUT_APK_URL`, failing the job if any patch fails. See
+  `docs/BUILD_FROM_SOURCE.md` for the required CI variables.
 
 ## v446-0-0-49-77
 

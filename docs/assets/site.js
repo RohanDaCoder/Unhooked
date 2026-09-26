@@ -3,8 +3,8 @@
 // latest APKs. Pages work without it: counts stay hidden, buttons keep their
 // "latest release" link.
 (function () {
-    var API = 'https://api.github.com/repos/jean-voila/Unhooked/releases?per_page=100';
-    var CACHE_KEY = 'unhooked-releases-v1';
+    var API = 'https://gitlab.com/api/v4/projects/RohanDaCoder%2FUnhooked/releases?per_page=100';
+    var CACHE_KEY = 'unhooked-releases-v2';
     var CACHE_MS = 10 * 60 * 1000;
 
     function readCache() {
@@ -20,20 +20,22 @@
     }
 
     function fetchPage(page, all) {
-        return fetch(API + '&page=' + page, { headers: { Accept: 'application/vnd.github+json' } })
+        return fetch(API + '&page=' + page, { headers: { Accept: 'application/json' } })
             .then(function (response) {
-                if (!response.ok) throw new Error('GitHub API ' + response.status);
+                if (!response.ok) throw new Error('GitLab API ' + response.status);
                 return response.json();
             })
             .then(function (list) {
                 list.forEach(function (release) {
                     all.push({
                         tag: release.tag_name,
-                        draft: release.draft,
-                        prerelease: release.prerelease,
-                        publishedAt: release.published_at,
-                        assets: (release.assets || []).map(function (asset) {
-                            return { name: asset.name, url: asset.browser_download_url, downloads: asset.download_count || 0 };
+                        draft: false,
+                        prerelease: !!release.upcoming_release,
+                        publishedAt: release.released_at,
+                        // GitLab exposes no download counts, so totals stay 0
+                        // and the count elements stay hidden.
+                        assets: ((release.assets || {}).links || []).map(function (link) {
+                            return { name: link.name, url: link.url, downloads: 0 };
                         })
                     });
                 });
@@ -64,10 +66,13 @@
     function isApk(name) { return /\.apkm?$/i.test(name); }
 
     function apply(summary) {
-        var lang = document.documentElement.lang || 'en';
-        var formatted = new Intl.NumberFormat(lang).format(summary.total);
-        document.querySelectorAll('[data-total-downloads]').forEach(function (el) { el.textContent = formatted; });
-        document.querySelectorAll('[data-downloads-wrap]').forEach(function (el) { el.hidden = false; });
+        // No per-asset download counts on GitLab: only show the total when nonzero.
+        if (summary.total > 0) {
+            var lang = document.documentElement.lang || 'en';
+            var formatted = new Intl.NumberFormat(lang).format(summary.total);
+            document.querySelectorAll('[data-total-downloads]').forEach(function (el) { el.textContent = formatted; });
+            document.querySelectorAll('[data-downloads-wrap]').forEach(function (el) { el.hidden = false; });
+        }
 
         if (!summary.latest) return;
         var apks = summary.latest.assets.filter(function (a) { return isApk(a.name); });

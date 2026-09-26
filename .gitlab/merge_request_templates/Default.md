@@ -1,6 +1,8 @@
+<!-- GitLab merge request template. -->
+
 ## Summary
 
-Explain what this pull request changes.
+Explain what this merge request changes.
 
 ## Why
 
@@ -23,4 +25,3 @@ Describe how you tested this change.
 - [ ] The change is focused and minimal.
 - [ ] Documentation was updated if needed.
 - [ ] I did not include unrelated formatting changes.
-- [ ] I tested the change where possible.
