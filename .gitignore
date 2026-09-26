@@ -18,6 +18,8 @@ build/
 **/build/
 .kotlin/
 local.properties
+# Generated version stamp (recreated by generateUnhookedVersion every build)
+extensions/extension/src/main/java/com/unhooked/extension/UnhookedVersion.java
 
 # IDE
 *.iml

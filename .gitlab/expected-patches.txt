@@ -1,0 +1,14 @@
+# Every patch that must apply in a release build (Debug bridge excluded).
+# CI diffs the applied list in each patch-report against this file: a patch
+# that silently goes missing fails the job instead of shipping half-patched.
+Clone
+Feed item filtering
+Force SDR display
+Install-packages permission
+Limit feed to following profiles
+Network content blocking
+Popup hiding
+Restart relay
+Screenshot bypass
+Settings entry point
+Signature check bypass

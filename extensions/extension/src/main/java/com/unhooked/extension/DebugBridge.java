@@ -80,10 +80,10 @@ public final class DebugBridge {
      * Version {@link UpdateChecker} should believe is installed, or null to use the
      * real one. A debug build reports something older than any release so the whole
      * update flow — notes, download progress, install prompt — can be exercised
-     * against the live GitHub release instead of waiting for a new one to exist.
+     * against the live GitLab release instead of waiting for a new one to exist.
      * Null in a release build, because nothing installs this class there.
      */
-    private static final String PRETEND_VERSION = "1.0.0.0.0";
+    private static final String PRETEND_VERSION = "0.0.0";
 
     /** @see #PRETEND_VERSION */
     public static String pretendInstalledVersion() {

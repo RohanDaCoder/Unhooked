@@ -19,6 +19,15 @@ All notable changes to Unhooked should be documented in this file.
   the classic/clone APK pair (`-clone.apk` for the clone build). GitHub
   issue forms are replaced by `.gitlab` templates; the Morphe patcher
   dependency still comes from GitHub Packages.
+- **Own versioning.** Releases are `v<semver>` from `gradle.properties`
+  (starting `1.0.0`), stamped into the APK at build time. The updater and
+  "What's new" compare that stamp instead of Instagram's `versionName`, so
+  multiple Unhooked releases can ship on one IG base. The settings page
+  shows both: `Unhooked X.Y.Z · Instagram A.B.C.D`.
+- **Tool jars are Gradle-managed.** `./gradlew setupTools` fetches
+  APKEditor and the Morphe CLI into `tools/` (pinned versions + SHA-256 in
+  `gradle/libs.versions.toml`); the patch tasks depend on it, so a fresh
+  clone builds with no manual downloads.
 
 ### Removed
 
@@ -35,10 +44,13 @@ All notable changes to Unhooked should be documented in this file.
   FLAG_SECURE from Instagram's windows so screenshots and screen recordings
   work in view-once media and disappearing DMs, forces recents thumbnails on,
   and drops the screenshot-taken report so the sender is not notified.
-- **GitLab CI on main.** `.gitlab-ci.yml` builds `unhooked-classic.apk` and
-  `unhooked-clone.apk` as job artifacts from the arm64-v8a base APK at
-  `INPUT_APK_URL`, failing the job if any patch fails. See
-  `docs/BUILD_FROM_SOURCE.md` for the required CI variables.
+- **GitLab CI on main.** `.gitlab-ci.yml` runs preflight → build → verify
+  → publish on every `main` push: both flavors are built and gated on the
+  patch report plus `.gitlab/expected-patches.txt`, signatures and package
+  identities are verified (with an optional release-cert pin), and a new
+  `v<VERSION>` GitLab Release is published with both APKs as assets — which
+  is what the in-app updater reads. Re-merges without a version bump just
+  build. See `docs/BUILD_FROM_SOURCE.md` for the required CI variables.
 
 ## v446-0-0-49-77
 

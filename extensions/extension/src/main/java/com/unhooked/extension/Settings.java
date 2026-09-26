@@ -480,6 +480,16 @@ public final class Settings {
         checkUpdate.setOnClickListener(v -> UpdateChecker.checkNow(context));
         column.addView(checkUpdate, stackedButtonParams(context, 12));
 
+        TextView about = new TextView(context);
+        String ig = UpdateChecker.instagramVersion(context);
+        about.setText(ig == null
+                ? "Unhooked " + UnhookedVersion.NAME
+                : "Unhooked " + UnhookedVersion.NAME + " · Instagram " + ig);
+        body(about);
+        about.setGravity(Gravity.CENTER_HORIZONTAL);
+        about.setPadding(0, dp(context, 12), 0, 0);
+        column.addView(about);
+
         // Pinned action row. A single full-width pill cannot overflow, however
         // narrow the screen or long the label.
         LinearLayout actions = new LinearLayout(context);
@@ -763,7 +773,7 @@ public final class Settings {
     }
 
     private static String supportText(String key) {
-        if (key.equals("auto_update")) return "Check GitHub for a new version on launch.";
+        if (key.equals("auto_update")) return "Check GitLab for a new version on launch.";
         if (key.equals("block_ads")) return "Block sponsored ads across Instagram.";
         if (key.equals("limit_following_feed")) return "Show only accounts you follow (needs the feed unblocked).";
         if (key.equals("hide_toasts")) return "Hide every Instagram popup, including “couldn’t refresh feed”.";
