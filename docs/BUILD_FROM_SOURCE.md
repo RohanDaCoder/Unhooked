@@ -61,7 +61,7 @@ has two jobs: `build-apks`, then `publish-release`.
 `build-apks` starts with preflight (validates the stock bundle and the
 required variables, failing fast), builds `unhooked-classic.apk` and
 `unhooked-clone.apk`, then gates on `failedPatches == []` **and** a diff of
-the applied list against `.gitlab/expected-patches.txt` — a silently missing
+the applied list against the per-flavor `.gitlab/expected-patches-*.txt` lists — a silently missing
 patch fails the job. It finishes by verifying both signatures, asserting the
 package identities (`com.instagram.android` vs
 `com.instagram.android.unhooked`), and pinning the release cert when
