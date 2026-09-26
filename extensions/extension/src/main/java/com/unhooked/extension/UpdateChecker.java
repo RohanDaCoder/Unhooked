@@ -47,7 +47,7 @@ import java.util.Locale;
 import java.util.Scanner;
 
 /**
- * Checks GitHub for a newer Unhooked release and, if found, shows what changed
+ * Checks GitLab for a newer Unhooked release and, if found, shows what changed
  * and installs it in place — no browser required.
  *
  * The flow is three screens: a full-screen "update available" page carrying the
@@ -65,10 +65,11 @@ import java.util.Scanner;
  */
 public final class UpdateChecker implements Runnable {
 
-    private static final String REPO = "RohanDaCoder/Unhooked";
-    private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
-    private static final String LATEST_PAGE = "https://github.com/" + REPO + "/releases/latest";
-    private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
+    private static final String PROJECT = "RohanDaCoder%2FUnhooked";
+    private static final String API = "https://gitlab.com/api/v4/projects/" + PROJECT + "/releases";
+    private static final String LATEST_API = API + "/permalink/latest";
+    private static final String LATEST_PAGE = "https://gitlab.com/RohanDaCoder/Unhooked/-/releases";
+    private static final String RELEASE_BY_TAG = API + "/";
     private static final String USER_AGENT = "Unhooked-UpdateCheck";
 
     /** Action prefix for the per-session PackageInstaller status callback. */
@@ -147,7 +148,7 @@ public final class UpdateChecker implements Runnable {
     private static String fetch(String url) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestProperty("User-Agent", USER_AGENT);
-        connection.setRequestProperty("Accept", "application/vnd.github+json");
+        connection.setRequestProperty("Accept", "application/json");
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(10000);
         try (InputStream input = connection.getInputStream();
@@ -192,13 +193,15 @@ public final class UpdateChecker implements Runnable {
 
     /** The release description (Markdown), unescaped, or null. */
     static String extractReleaseBody(String json) {
-        String raw = stringField(json, "\"body\"", 0);
+        // GitLab calls it "description"; keep "body" as a fallback.
+        String raw = stringField(json, "\"description\"", 0);
+        if (raw == null) raw = stringField(json, "\"body\"", 0);
         return raw == null || raw.trim().isEmpty() ? null : raw;
     }
 
     /**
      * Read the JSON string value that follows {@code key} at or after {@code from},
-     * decoding the backslash escapes GitHub actually emits: newline, carriage
+     * decoding the backslash escapes the API actually emits: newline, carriage
      * return, tab, quote, backslash, slash and 4-digit hex code points.
      * Returns null when the key is absent or the value isn't a string.
      */
@@ -250,12 +253,17 @@ public final class UpdateChecker implements Runnable {
     static String extractApkUrl(String json, boolean clone) {
         if (json == null) return null;
         List<String> urls = new ArrayList<>();
-        int idx = 0;
-        while (true) {
-            String url = stringField(json, "\"browser_download_url\"", idx);
-            if (url == null) break;
-            urls.add(url);
-            idx = json.indexOf("\"browser_download_url\"", idx) + 1;
+        // GitLab release links use "url"; keep "browser_download_url" so an
+        // old cached response still parses. Only *.apk values survive the
+        // filter below, so unrelated links (avatars, web URLs) are harmless.
+        for (String key : new String[]{"\"browser_download_url\"", "\"url\""}) {
+            int idx = 0;
+            while (true) {
+                String url = stringField(json, key, idx);
+                if (url == null) break;
+                urls.add(url);
+                idx = json.indexOf(key, idx) + 1;
+            }
         }
         for (String url : urls) {
             if (!url.endsWith(".apk")) continue;
@@ -268,7 +276,8 @@ public final class UpdateChecker implements Runnable {
     /**
      * Byte size of the asset this build would download, or -1. Used to show a
      * total before the first byte arrives; the server's Content-Length wins once
-     * the download starts.
+     * the download starts. GitLab exposes no per-asset size, so this returns -1
+     * there and the live Content-Length is used.
      */
     static long extractApkSize(String json, boolean clone) {
         if (json == null) return -1;
@@ -280,8 +289,8 @@ public final class UpdateChecker implements Runnable {
             idx = at + 1;
             if (url == null || !url.endsWith(".apk")) continue;
             if (url.endsWith("-clone.apk") != clone) continue;
-            // "size" belongs to the same asset object, and GitHub emits it before
-            // browser_download_url — so search backwards from this asset's start.
+            // "size" belongs to the same asset object, and the old API emitted it
+            // before browser_download_url — so search backwards from this asset's start.
             int assetStart = json.lastIndexOf('{', at);
             int size = assetStart < 0 ? -1 : json.indexOf("\"size\"", assetStart);
             if (size < 0 || size > at) return -1;

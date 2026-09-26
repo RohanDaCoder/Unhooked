@@ -14,6 +14,11 @@ All notable changes to Unhooked should be documented in this file.
 - **Build moved into Gradle.** `build.sh` is deleted; the pipeline is now
   `./gradlew buildApk "-Papk=<...>"` (`-Pclone`, `-Pinstall`,
   `-Pdebug`), with the patch receipt still in `build/patch-report.json`.
+- **Home is now GitLab (`RohanDaCoder/Unhooked`).** The in-app updater and
+  the site's release feed read the GitLab Releases API; release assets keep
+  the classic/clone APK pair (`-clone.apk` for the clone build). GitHub
+  issue forms are replaced by `.gitlab` templates; the Morphe patcher
+  dependency still comes from GitHub Packages.
 
 ### Removed
 

@@ -19,7 +19,7 @@ you inspect the patches and avoid trusting a prebuilt APK.
 1. Clone the repository.
 
    ```sh
-   git clone https://github.com/jean-voila/Unhooked.git
+   git clone https://gitlab.com/RohanDaCoder/Unhooked.git
    cd Unhooked
    ```
 

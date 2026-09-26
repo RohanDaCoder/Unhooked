@@ -11,19 +11,14 @@
 </div>
 
 <p align="center">
-  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><img alt="Latest release" src="https://img.shields.io/github/v/release/jean-voila/Unhooked?style=flat-square&label=release&color=10a37f"></a>
-  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><img alt="Download APK, total downloads" src="https://img.shields.io/github/downloads/jean-voila/Unhooked/total?style=flat-square&label=Download%20APK&color=10a37f"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/github/license/jean-voila/Unhooked?style=flat-square&color=6b7280"></a>
+  <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/releases"><img alt="Latest release" src="https://img.shields.io/gitlab/v/tag/RohanDaCoder/Unhooked?style=flat-square&label=release&color=10a37f"></a>
+  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPLv3-6b7280?style=flat-square"></a>
   <a href="https://discord.gg/Z9QvMw8s76"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white"></a>
   <a href="https://www.instagram.com/unhooked_official/"><img alt="Instagram updates" src="https://img.shields.io/badge/instagram-updates-E4405F?style=flat-square&logo=instagram&logoColor=white"></a>
 </p>
 
 <p align="center">
-  <img src="https://komarev.com/ghpvc/?username=jean-voila-unhooked&label=Views&color=gray&style=flat" alt="Views">
-</p>
-
-<p align="center">
-  <a href="https://github.com/jean-voila/Unhooked/releases/latest"><strong>Download APK</strong></a>
+  <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/releases"><strong>Download APK</strong></a>
   ·
   <a href="docs/INSTALL.md">Install</a>
   ·
@@ -33,7 +28,7 @@
   ·
   <a href="docs/PRIVACY.md">Privacy</a>
   ·
-  <a href="https://github.com/jean-voila/Unhooked/issues">Issues</a>
+  <a href="https://gitlab.com/RohanDaCoder/Unhooked/issues">Issues</a>
 </p>
 
 <p align="center">

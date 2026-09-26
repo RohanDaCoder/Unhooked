@@ -1,0 +1,18 @@
+<!-- GitLab issue template: Question.
+     Applied automatically when the reporter picks this template. -->
+
+/label ~question ~"needs triage"
+
+Use this for questions that are not clearly bugs or feature requests. Quick support questions also work on [Discord](https://discord.gg/Z9QvMw8s76).
+
+## Topic
+
+<!-- safety / privacy / releases / build from source / clone vs classic / project direction / other -->
+
+## Question
+
+<!-- Ask clearly and include context if it matters. -->
+
+## Context
+
+<!-- Device, APK type, Instagram version, or threat model, if relevant. -->
