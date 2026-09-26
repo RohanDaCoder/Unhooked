@@ -17,8 +17,8 @@ Instagram APK to produce `unhooked.apk`. Two modules, one pipeline.
   lists a release build must apply (10/11, comment-free so CI can diff
   literally).
 - `.gitlab-ci.yml` — merge-gated release press, `main` only (see CI).
-- `docs/` — mostly website; `docs/BUILD_FROM_SOURCE.md` (build reqs),
-  `docs/DESIGN.md` (UI rules), `docs/superpowers/plans/` (feature plans).
+- `docs/` — user guides (`INSTALL`, `BUILD_FROM_SOURCE`, `FAQ`, `PRIVACY`),
+  `docs/DESIGN.md` (UI rules), Readme images, `docs/superpowers/` (feature plans).
 - `.dexloom-ws/` + `dexloom-*.jar` — local smali workspace/CLI for fingerprint
   research. Gitignored, never commit.
 
