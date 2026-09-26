@@ -77,8 +77,8 @@ Configure these CI/CD variables (Settings → CI/CD → Variables):
   release; `JOB-TOKEN` cannot mint tags).
 - `INPUT_APK_URL` — stock Instagram bundle (defaults in-YAML to the pinned
   APKPure xapk).
-- Release signing: `UNHOOKED_KEYSTORE_B64` (File variable with the base64
-  keystore), `UNHOOKED_KEYSTORE_PASS`, `UNHOOKED_KEY_ALIAS`.
+- Release signing: `UNHOOKED_KEYSTORE_B64` (plain variable with the base64
+  keystore text), `UNHOOKED_KEYSTORE_PASS`, `UNHOOKED_KEY_ALIAS`.
 - `RELEASE_CERT_SHA256` — expected cert fingerprint from
   `apksigner verify --print-certs` on a release-signed APK (optional pin).
 

@@ -11,7 +11,8 @@
 #                     release (JOB-TOKEN cannot mint tags).
 # Optional:
 #   INPUT_APK_URL   Stock Instagram bundle to patch (default: APKPure xapk below).
-#   UNHOOKED_KEYSTORE_B64   base64 of the release keystore (File variable).
+#   UNHOOKED_KEYSTORE_B64   base64 of the release keystore (plain Variable holding
+#     the base64 text — the job decodes it; NOT a File variable).
 #   UNHOOKED_KEYSTORE_PASS / UNHOOKED_KEY_ALIAS — release signing. Publish
 #     hard-fails without them; without them the APKs are throwaway-signed.
 #   RELEASE_CERT_SHA256 — pins the release signing cert (get it from
@@ -79,9 +80,12 @@ build-apks:
     - test "$(aapt dump badging unhooked-classic.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android"
     - test "$(aapt dump badging unhooked-clone.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android.unhooked"
     - |
+      # Both sides are normalized (colons stripped) since keytool and
+      # apksigner print the same digest with different separators/casing.
       if [ -n "$RELEASE_CERT_SHA256" ]; then
-        grep -qi "$RELEASE_CERT_SHA256" certs-classic.txt || (echo "classic APK not signed with the release key" >&2 && exit 1)
-        grep -qi "$RELEASE_CERT_SHA256" certs-clone.txt || (echo "clone APK not signed with the release key" >&2 && exit 1)
+        PIN=$(echo "$RELEASE_CERT_SHA256" | tr -d ':')
+        tr -d ':' < certs-classic.txt | grep -qi "$PIN" || (echo "classic APK not signed with the release key" >&2 && exit 1)
+        tr -d ':' < certs-clone.txt | grep -qi "$PIN" || (echo "clone APK not signed with the release key" >&2 && exit 1)
       else
         echo "WARNING: RELEASE_CERT_SHA256 unset — cert pin skipped"
       fi
