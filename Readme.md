@@ -28,7 +28,7 @@
   ·
   <a href="docs/PRIVACY.md">Privacy</a>
   ·
-  <a href="https://gitlab.com/RohanDaCoder/Unhooked/issues">Issues</a>
+  <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/issues">Issues</a>
 </p>
 
 <p align="center">
@@ -101,7 +101,7 @@ I built this project for myself as an alternative to [DFInstagram](https://www.d
 
 ## How do I get notified when there is a new update ?
 
-Unhooked checks GitHub for a newer release on every launch and shows a
+Unhooked checks GitLab for a newer release on every launch and shows a
 download prompt when your build is out of date. This **automatic update check**
 is on by default and can be turned off in the Unhooked settings page
 (Updates section).
@@ -127,7 +127,7 @@ Official email: **[unhooked@gmail.com](mailto:unhooked@gmail.com)**. Journalists
 
 You have two options:
 
-1. **Ready-to-install APK** - Grab the latest patched APK from the [Releases](../../releases) page and install it directly
+1. **Ready-to-install APK** - Grab the latest patched APK from the [Releases](https://gitlab.com/RohanDaCoder/Unhooked/-/releases) page and install it directly
 2. **DIY Patching** - Use the toolkit below to patch any Instagram version yourself
 
 ## What Gets Disabled
@@ -169,7 +169,8 @@ of just the accounts you follow, with the recommended/ranked posts dropped.
 ## Settings Page
 
 **Long-press the Home tab** (the house icon at the bottom-left of Instagram's
-main tab bar). A full-screen, scrollable settings page opens — Material 3
+main tab bar). On your first signed-in launch a one-time hint points you at
+it. A full-screen, scrollable settings page opens — Material 3
 Expressive, monochrome, and padded to fit around system bars and cutouts on any
 device — with:
 
@@ -196,7 +197,7 @@ device — with:
   landing on it would hand back exactly what you removed.
 - **Updates** — after an update, the first launch shows a **What's new** card with
   that version's release notes. Then, _Automatic update check_ (on by default): on launch,
-  Unhooked checks GitHub for a newer release and, if your build is out of
+  Unhooked checks GitLab for a newer release and, if your build is out of
   date, opens a page showing what changed in it. Choosing _Update_ downloads the
   APK on a progress page you can cancel — or leave, in which case the download
   carries on in a notification — then hands it to Android's installer. No
@@ -253,23 +254,32 @@ Unhooked/
 │   └── src/main/kotlin/com/unhooked/patches/
 │       ├── network/              # Network blocking + feed-item filter + following-feed
 │       ├── settings/             # Long-press settings entry point (tab bar)
+│       ├── restart/              # Restart relay (relaunch after a settings change)
+│       ├── shared/               # Fingerprint helpers shared by patches
 │       ├── signature/            # Signing-cert trust bypass (deep links)
 │       ├── display/              # Force SDR (disable Instagram's forced HDR window)
 │       ├── screenshot/           # Screenshot bypass (strip FLAG_SECURE, gated on toggle)
-│       ├── debug/                # ADB settings bridge (dev only, --debug)
+│       ├── ui/                   # Popup hiding ("Couldn't refresh feed" noise)
+│       ├── update/               # Install-packages permission (in-app update)
+│       ├── debug/                # ADB settings bridge (dev only, -Pdebug)
 │       └── clone/                # Side-by-side package/label rename
 └── extensions/                   # Runtime code (Java), compiled and merged in
     └── .../com/unhooked/extension/
         ├── Block.java            # URI blocking rules + feed-item type filter
         ├── LimitFeed.java        # Following-feed header rewrite
         ├── Config.java           # SharedPreferences toggles
-        ├── Settings.java         # Settings dialog
-        ├── Display.java          # Window colour-mode control (Force dark / SDR)
-        ├── Screenshots.java      # Window flag control (Allow screenshots bypass)
+        ├── Settings.java         # Settings page
+        ├── HomeTabWatcher.java   # Tab-bar watcher (long-press entry + hiders + redirect)
+        ├── Onboarding.java       # One-time long-press hint on first signed-in launch
         ├── Hiders.java           # Nav-tab / Notes / Instants hiders + landing redirect
         ├── HiddenTabSwipeSkipper.java  # Keeps swipes off hidden tabs' pages
-        ├── DebugBridge.java      # Dev-only ADB bridge over the settings (--debug builds)
-        └── UpdateChecker.java    # On-launch GitHub release check
+        ├── Display.java          # Window colour-mode control (Force dark / SDR)
+        ├── Screenshots.java      # Window flag control (Allow screenshots bypass)
+        ├── CacheCleaner.java     # Cache wipe + relaunch after a settings change
+        ├── RestartActivity.java  # One-shot relay that performs the relaunch
+        ├── Toasts.java           # Popup suppression for blocked-surface noise
+        ├── DebugBridge.java      # Dev-only ADB bridge over the settings (-Pdebug builds)
+        └── UpdateChecker.java    # On-launch GitLab release check
 ```
 
 ## Design
@@ -349,7 +359,7 @@ shared links (posts, reels, profiles) silently dropped to the home feed. A patch
 forces Instagram's signing-certificate trust checks to always pass, so it treats
 the build as genuine and deep links resolve normally. It matches on a stable
 error string rather than obfuscated names, so it needs no per-version
-maintenance. Fixes #36 and #106.
+maintenance.
 
 ### Force SDR display
 
