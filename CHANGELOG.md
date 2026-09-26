@@ -3,10 +3,16 @@
 All notable changes to Unhooked are documented in this file.
 Entries under Unreleased ship with the next version bump.
 
-## Unreleased (toward 1.0.1)
+## Unreleased
+
+## 1.0.3
 
 ### Added
 
+- **Release notes ship in the update prompt.** The GitLab release description
+  is now cut from this changelog, so "Update available" and "What's new"
+  show these notes instead of a fixed template. A release without a matching
+  section fails CI rather than shipping empty notes.
 - **`fetchBase` Gradle task.** `./gradlew fetchBase` downloads the pinned
   stock Instagram base from this project's Package Registry
   (`-PbaseVersion=<v>` overrides the pin); second runs are a cache hit.
