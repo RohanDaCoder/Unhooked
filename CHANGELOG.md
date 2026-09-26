@@ -1,29 +1,53 @@
 # Changelog
 
-All notable changes to Unhooked should be documented in this file.
+All notable changes to Unhooked are documented in this file.
+Entries under Unreleased ship with the next version bump.
 
-## Unreleased
+## Unreleased (toward 1.0.1)
+
+### Added
+
+- **`fetchBase` Gradle task.** `./gradlew fetchBase` downloads the pinned
+  stock Instagram base from this project's Package Registry
+  (`-PbaseVersion=<v>` overrides the pin); second runs are a cache hit.
+- **Shared IntelliJ run configurations** (`.idea/runConfigurations/`):
+  Setup Tools, Build Classic/Clone, Install Clone, Compile Patches.
+
+### Changed
+
+- **CI builds both flavors in parallel.** `build-apks` split into
+  `build-classic` + `build-clone` on separate runners; per-flavor gates stay
+  in-job, the cross-flavor release-cert pin moved to `publish-release`.
+- **Docs restructured.** The Readme is user-only with a fork credit;
+  developer content moved 1:1 into `docs/DEVELOPERS.md` (build/sign/debug)
+  and `docs/ARCHITECTURE.md` (internals). The inherited upstream website
+  and all Feurstagram-branded images were removed; fresh screenshots are
+  still to be captured from an Unhooked build.
+
+## 1.0.0
+
+First Unhooked release, on Instagram 446.0.0.49.77. Clean break from
+Feurstagram: reinstall required, previous settings do not migrate.
 
 ### Changed
 
 - **Rebrand: Feurstagram is now Unhooked.** Code namespaces
   (`com.unhooked.*`), clone package (`com.instagram.android.unhooked`),
-  prefs (`unhooked_prefs`), build output (`unhooked.apk`), update feed
-  (`jean-voila/Unhooked`), and all docs/site strings renamed. Clean break:
-  reinstall required, previous settings do not migrate.
+  prefs (`unhooked_prefs`), build output (`unhooked.apk`), and all
+  docs strings renamed.
 - **Build moved into Gradle.** `build.sh` is deleted; the pipeline is now
   `./gradlew buildApk "-Papk=<...>"` (`-Pclone`, `-Pinstall`,
   `-Pdebug`), with the patch receipt still in `build/patch-report.json`.
-- **Home is now GitLab (`RohanDaCoder/Unhooked`).** The in-app updater and
-  the site's release feed read the GitLab Releases API; release assets keep
-  the classic/clone APK pair (`-clone.apk` for the clone build). GitHub
-  issue forms are replaced by `.gitlab` templates; the Morphe patcher
-  dependency still comes from GitHub Packages.
-- **Own versioning.** Releases are `v<semver>` from `gradle.properties`
-  (starting `1.0.0`), stamped into the APK at build time. The updater and
-  "What's new" compare that stamp instead of Instagram's `versionName`, so
-  multiple Unhooked releases can ship on one IG base. The settings page
-  shows both: `Unhooked X.Y.Z · Instagram A.B.C.D`.
+- **Home is now GitLab (`RohanDaCoder/Unhooked`).** The in-app updater reads
+  the GitLab Releases API; release assets keep the classic/clone APK pair
+  (`-clone.apk` for the clone build). GitHub issue forms are replaced by
+  `.gitlab` templates; the Morphe patcher dependency still comes from
+  GitHub Packages.
+- **Own versioning.** Releases are `v<semver>` from `gradle.properties`,
+  stamped into the APK at build time. The updater and "What's new" compare
+  that stamp instead of Instagram's `versionName`, so multiple Unhooked
+  releases can ship on one IG base. The settings page shows both:
+  `Unhooked X.Y.Z · Instagram A.B.C.D`.
 - **Tool jars are Gradle-managed.** `./gradlew setupTools` fetches
   APKEditor and the Morphe CLI into `tools/` (pinned versions + SHA-256 in
   `gradle/libs.versions.toml`); the patch tasks depend on it, so a fresh
@@ -31,8 +55,7 @@ All notable changes to Unhooked should be documented in this file.
 
 ### Removed
 
-- **Donation links.** GitHub Sponsors and Buy Me A Coffee badges, the
-  website widget, and the in-app Donate buttons are gone.
+- **Donation links.** Sponsor badges and the in-app Donate buttons are gone.
 - **Permanent lock removed.** Every setting is freely reversible again;
   nothing freezes, and there is no reinstall to undo a change.
 - **Follow prompt removed.** The first-launch card inviting users to follow
@@ -45,31 +68,38 @@ All notable changes to Unhooked should be documented in this file.
   work in view-once media and disappearing DMs, forces recents thumbnails on,
   and drops the screenshot-taken report so the sender is not notified.
 - **GitLab CI on main.** `.gitlab-ci.yml` runs preflight → build → verify
-  → publish on every `main` push: both flavors are built and gated on the
-  patch report plus the per-flavor `.gitlab/expected-patches-*.txt` lists, signatures and package
-  identities are verified (with an optional release-cert pin), and a new
-  `v<VERSION>` GitLab Release is published with both APKs as assets — which
-  is what the in-app updater reads. Re-merges without a version bump just
-  build. See `docs/BUILD_FROM_SOURCE.md` for the required CI variables.
+  → publish on every `dev` → `main` merge: both flavors are built and gated
+  on the patch report plus the per-flavor `.gitlab/expected-patches-*.txt`
+  lists, signatures and package identities are verified (with an optional
+  release-cert pin), and a new `v<VERSION>` GitLab Release is published
+  with both APKs as assets — which is what the in-app updater reads.
+  Re-merges without a version bump just build. See
+  `docs/BUILD_FROM_SOURCE.md` for the required CI variables.
+
+## Upstream history (Feurstagram)
+
+Releases below predate the fork and describe Feurstagram by jean-voila;
+names, links, and issue numbers refer to that project
+([github.com/jean-voila/Feurstagram](https://github.com/jean-voila/Feurstagram)).
 
 ## v446-0-0-49-77
 
 ### Added
 
 - **Follow the official account.** The first launch after installing or updating
-  FeurStagram shows a card inviting the user to follow
-  [@feurstagram_official](https://www.instagram.com/feurstagram_official/), where every
-  release is announced. _Follow_ opens the profile inside the app, _Not now_ closes it.
-  "After an install or update" is read from the package's `lastUpdateTime`, not its
-  versionName, so a re-release on the same Instagram base counts too; it is shown once per
-  install or update, and the "What's new" card only runs once it has been dismissed.
+  shows a card inviting the user to follow the official account, where every
+  release is announced. _Follow_ opens the profile inside the app, _Not now_
+  closes it. "After an install or update" is read from the package's
+  `lastUpdateTime`, not its versionName, so a re-release on the same Instagram
+  base counts too; it is shown once per install or update, and the "What's new"
+  card only runs once it has been dismissed.
 - **Website: Instagram without Reels pages, guides and a press kit.** A landing page for
   "Instagram without Reels" comparing the ways to hide Reels, guides (removing Reels on
   Android, Instagram without the feed, DFInstagram alternative, Feurstagram vs ScrollGuard vs
   WallHabit, the EU's findings on Instagram's addictive design), a press kit, a French
   version of the main pages, structured data, `hreflang` pairs and a `sitemap.xml`.
 - The website shows the total download count, loaded from GitHub when the page opens, and
-  the official contact address, feurstagram@gmail.com.
+  the official contact address.
 
 ### Fixed
 
@@ -85,7 +115,7 @@ All notable changes to Unhooked should be documented in this file.
 ### Changed
 
 - **The settings page opens with an animation.** Long-pressing Home now brings the
-  Feurstagram settings page in with a short rise-and-fade instead of it appearing at once.
+  settings page in with a short rise-and-fade instead of it appearing at once.
 - Updated to Instagram 446.0.0.49.77.
 - The README's download badge shows the total number of downloads, and the README lists the
   official contact address.
@@ -99,20 +129,16 @@ All notable changes to Unhooked should be documented in this file.
   444: its fingerprint required the `in_feed_survey` unit type, which Instagram
   removed from the feed-item parser. The patch failed silently and every inline
   ad/netego unit came back. The fingerprint now anchors on four load-bearing
-  tokens instead of seven. Fixes #117.
+  tokens instead of seven.
 - **Hidden navigation tabs can no longer be reached by swiping.** Hiding a tab
   only removed its icon; the page stayed in the swipe pager, so a flick still
-  opened Search, Messages or Reels — and walked straight around the permanent
-  lock. A swipe released toward a hidden tab is now re-aimed at the nearest
-  visible one, mid-flight, so it stays a single continuous gesture rather than
-  landing on the hidden page and cutting away. Always on: it is not a toggle,
-  because a switch that turns it off would be a way around the permanent lock.
-  Fixes #121 and #92.
+  opened Search, Messages or Reels. A swipe released toward a hidden tab is now
+  re-aimed at the nearest visible one, mid-flight, so it stays a single
+  continuous gesture rather than landing on the hidden page and cutting away.
 - **The landing page can no longer point at a hidden surface.** Search stayed
-  selectable as the cold-start page even when its tab was hidden and the
-  permanent lock was on, which handed back the surface the lock was meant to
-  remove. Options for hidden tabs are now greyed out, and an already-stored one
-  falls back to the home feed. Fixes #116.
+  selectable as the cold-start page even when its tab was hidden, which handed
+  back the surface the user meant to remove. Options for hidden tabs are now
+  greyed out, and an already-stored one falls back to the home feed.
 
 - **The updater no longer raises two install prompts.** A second Android
   "update this app?" dialog was queued behind the first and surfaced once the
@@ -135,7 +161,7 @@ All notable changes to Unhooked should be documented in this file.
   nagged to update, not about being told what an update did.
 - **Design guidelines** written down in `docs/DESIGN.md`, so the Material 3
   Expressive monochrome system is followed the next time the UI changes.
-- **Debug builds** (`./build.sh … --debug`): the settings become readable and
+- **Debug builds** (`./gradlew buildApk … -Pdebug`): the settings become readable and
   writable over ADB broadcasts, so on-device testing no longer needs the UI.
   Development only, never enabled in a release.
 
@@ -151,13 +177,9 @@ All notable changes to Unhooked should be documented in this file.
   hidden behind a three-button navigation bar; the scrolling area shrinks to
   what is actually on screen instead of being cropped; and the content column is
   capped at a readable width on tablets, foldables and wide screens.
-
-### Changed
-
 - Updated to Instagram 445.0.0.45.83.
-- `build.sh` now reports which patches applied (`build/patch-report.json`), so a
-  fingerprint that stops matching is visible instead of silent, and it accepts
-  the renamed `morphe-desktop-*.jar` CLI.
+- The pipeline now reports which patches applied (`build/patch-report.json`), so a
+  fingerprint that stops matching is visible instead of silent.
 - The update download no longer goes through the system `DownloadManager`; it is
   fetched in-app so its progress can be shown, cancelled, and mirrored into a
   notification when the page is closed.
@@ -175,8 +197,7 @@ All notable changes to Unhooked should be documented in this file.
 
 - **Deep links** into Instagram now open their target (shared posts, reels,
   profiles) instead of dropping to the home feed, via a new signature-check
-  bypass that makes Instagram trust the re-signed build. Fixes #36 and #106.
-  Thanks @na-ji.
+  bypass that makes Instagram trust the re-signed build. Thanks @na-ji.
 
 ### Changed
 
@@ -184,4 +205,7 @@ All notable changes to Unhooked should be documented in this file.
 
 ## Previous releases
 
-See GitHub Releases for APK downloads and version-specific changes.
+See [GitLab Releases](https://gitlab.com/RohanDaCoder/Unhooked/-/releases) for
+Unhooked APK downloads, and
+[Feurstagram's GitHub Releases](https://github.com/jean-voila/Feurstagram/releases)
+for the upstream history.
