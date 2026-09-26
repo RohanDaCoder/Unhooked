@@ -129,7 +129,7 @@ public final class UpdateChecker implements Runnable {
                 return;
             }
 
-            String installed = installedVersion();
+            String installed = ownVersion();
             if (isNewer(normalize(tag), installed)) {
                 final String apkUrl = extractApkUrl(body, isCloneBuild());
                 final String notes = extractReleaseBody(body);
@@ -305,7 +305,7 @@ public final class UpdateChecker implements Runnable {
         }
     }
 
-    /** "v434-0-0-44-74" -> "434.0.0.44.74" so it matches the installed versionName. */
+    /** "v1.2.0" -> "1.2.0" so it compares against the stamped build version. */
     static String normalize(String tag) {
         if (tag == null) return "";
         String value = tag.trim();
@@ -315,22 +315,21 @@ public final class UpdateChecker implements Runnable {
         return value.replace('-', '.');
     }
 
-    /** Installed versionName (Instagram's), e.g. "435.0.0.37.76". "0" on failure. */
-    private String installedVersion() {
+    /** This build's Unhooked version, stamped at build time (e.g. "1.2.0"). */
+    private static String ownVersion() {
         // A debug build reports an ancient version so the whole update flow can be
         // exercised against the real release. Always null in a release build.
         String pretend = DebugBridge.pretendInstalledVersion();
         if (pretend != null) return pretend;
-        String real = realInstalledVersion(context);
-        return real == null ? "0" : real;
+        return UnhookedVersion.NAME;
     }
 
     /**
-     * The genuine installed versionName, never the debug pretence: "What's new"
-     * looks up a release by this exact tag, so a made-up version would only ever
-     * 404.
+     * The installed Instagram versionName (e.g. "446.0.0.49.77"), for display
+     * only — update decisions use {@link #ownVersion}. Never the debug
+     * pretence.
      */
-    private static String realInstalledVersion(Context context) {
+    static String instagramVersion(Context context) {
         try {
             PackageManager pm = context.getPackageManager();
             return pm.getPackageInfo(context.getPackageName(), 0).versionName;
@@ -373,15 +372,14 @@ public final class UpdateChecker implements Runnable {
     public static void checkWhatsNew(final Context context) {
         if (context == null || whatsNewChecked) return;
         whatsNewChecked = true;
-        final String installed = realInstalledVersion(context);
-        if (installed == null) return;
+        final String installed = ownVersion();
         String seen = Config.getLastSeenVersion();
         if (seen == null) {
             Config.setLastSeenVersion(installed);
             return;
         }
         if (seen.equals(installed)) return;
-        new Thread(() -> loadNotes(context, "v" + installed.replace('.', '-'), installed, true),
+        new Thread(() -> loadNotes(context, "v" + installed, installed, true),
                 "unhooked-whatsnew").start();
     }
 

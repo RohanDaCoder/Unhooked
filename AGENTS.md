@@ -64,6 +64,7 @@ Setup prerequisites: JDK 21, Android SDK, and a GitHub token with
   vs WSL distinction. Quote `-Papk="..."` — the stock APK filename contains
   parens, which break nested shell quoting.
 - Device work via the `android` CLI (`install --device=... --apks=...`,
-  `layout`, `screen capture`); `adb` only as fallback. Emulator note: x86_64
-  AVDs run x86_64 Instagram builds (verified on `Medium_Phone`, Android 30);
-  arm64-only builds still need physical ARM hardware.
+  `layout`, `screen capture`); `adb` only as fallback. Emulator note: the
+  release base is arm64-v8a-only (`native-code: 'arm64-v8a'`), so x86_64 AVDs
+  reject it with `INSTALL_FAILED_NO_MATCHING_ABIS` — on-device testing needs
+  physical ARM hardware or an arm64 AVD.

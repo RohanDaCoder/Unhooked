@@ -52,16 +52,35 @@ keep the same one to reinstall without losing app data.
 
 ## CI (GitLab, main branch only)
 
-Pushing to `main` builds both flavors — `unhooked-classic.apk` and
-`unhooked-clone.apk` — as job artifacts (`.gitlab-ci.yml`). Configure these
-CI/CD variables first (Settings → CI/CD → Variables):
+Merging `dev` into `main` is the release act. The pipeline (`.gitlab-ci.yml`)
+has two jobs: `build-apks`, then `publish-release`.
 
-- `INPUT_APK_URL` — URL of the stock arm64-v8a Instagram APK/APKM.
+`build-apks` starts with preflight (validates the stock bundle and the
+required variables, failing fast), builds `unhooked-classic.apk` and
+`unhooked-clone.apk`, then gates on `failedPatches == []` **and** a diff of
+the applied list against `.gitlab/expected-patches.txt` — a silently missing
+patch fails the job. It finishes by verifying both signatures, asserting the
+package identities (`com.instagram.android` vs
+`com.instagram.android.unhooked`), and pinning the release cert when
+`RELEASE_CERT_SHA256` is set.
+
+`publish-release` runs only when no `v<VERSION>` release exists yet
+(re-merges without a bump just build). It uploads both APKs to Generic
+Packages and creates the GitLab Release with them as assets, which is what
+the in-app updater reads. It hard-fails without the release key.
+
+Configure these CI/CD variables (Settings → CI/CD → Variables):
+
 - `GITHUB_ACTOR` / `GITHUB_TOKEN` — GitHub user + token with
   `read:packages` for the Morphe registry.
-- Optional release signing: `UNHOOKED_KEYSTORE_B64` (File variable holding
-  the base64 keystore), `UNHOOKED_KEYSTORE_PASS`, `UNHOOKED_KEY_ALIAS`.
-  Without them the artifacts are throwaway-signed.
+- `GITLAB_API_TOKEN` — project access token with `api` scope (creates the
+  release; `JOB-TOKEN` cannot mint tags).
+- `INPUT_APK_URL` — stock Instagram bundle (defaults in-YAML to the pinned
+  APKPure xapk).
+- Release signing: `UNHOOKED_KEYSTORE_B64` (plain variable with the base64
+  keystore text), `UNHOOKED_KEYSTORE_PASS`, `UNHOOKED_KEY_ALIAS`.
+- `RELEASE_CERT_SHA256` — expected cert fingerprint from
+  `apksigner verify --print-certs` on a release-signed APK (optional pin).
 
 ## Notes
 

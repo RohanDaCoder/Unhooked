@@ -1,24 +1,48 @@
-# Unhooked CI — builds both APK flavors on main.
+# Unhooked CI — merge-gated release press on main.
+#
+# Flow: a dev → main merge builds both flavors; if gradle.properties carries a
+# version with no matching GitLab Release yet, the APKs are published as a new
+# release (classic + clone assets) that the in-app updater picks up.
 #
 # Required CI/CD variables (Settings → CI/CD → Variables):
-#   INPUT_APK_URL   URL of the stock arm64-v8a Instagram APK/APKM to patch
-#                   (too big to commit; e.g. a Package Registry file or mirror link).
 #   GITHUB_ACTOR    GitHub username (Morphe registry auth for the Gradle plugin).
 #   GITHUB_TOKEN    GitHub token with read:packages, masked (same).
+#   GITLAB_API_TOKEN  Project access token with api scope, masked. Creates the
+#                     release (JOB-TOKEN cannot mint tags).
 # Optional:
-#   UNHOOKED_KEYSTORE_B64   base64 of the release keystore (File variable).
-#   UNHOOKED_KEYSTORE_PASS / UNHOOKED_KEY_ALIAS — release signing. Without them
-#     the APKs are throwaway-signed (fine for testing, not for release).
-#   MORPHE_VERSION / APKEDITOR_VERSION — tool pins (defaults match local dev).
+#   INPUT_APK_URL   Stock Instagram bundle to patch (default: APKPure xapk below).
+#   UNHOOKED_KEYSTORE_B64   base64 of the release keystore (plain Variable holding
+#     the base64 text — the job decodes it; NOT a File variable).
+#   UNHOOKED_KEYSTORE_PASS / UNHOOKED_KEY_ALIAS — release signing. Publish
+#     hard-fails without them; without them the APKs are throwaway-signed.
+#   RELEASE_CERT_SHA256 — pins the release signing cert (get it from
+#     `apksigner verify --print-certs` on a release-signed APK). Unset skips
+#     the pin with a warning.
 
 stages:
   - build
+  - publish
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
   ANDROID_HOME: "$CI_PROJECT_DIR/android-sdk"
-  MORPHE_VERSION: "1.16.0"
-  APKEDITOR_VERSION: "1.4.9"
+  INPUT_APK_URL: "https://d.apkpure.com/b/XAPK/com.instagram.android?versionCode=385311854"
+
+cache:
+  key: unhooked-main
+  paths:
+    - .gradle/caches/
+    - .gradle/wrapper/
+    - android-sdk/
+    - tools/
+
+before_script:
+  - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
+  - curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+  - export PATH="$HOME/.local/bin:$PATH"
+  - android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
+  - export PATH="$ANDROID_HOME/build-tools/36.0.0:$ANDROID_HOME/platform-tools:$PATH"
+  - chmod +x gradlew
 
 build-apks:
   stage: build
@@ -27,36 +51,45 @@ build-apks:
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-  cache:
-    key: unhooked-main
-    paths:
-      - .gradle/caches/
-      - .gradle/wrapper/
-      - android-sdk/
-  before_script:
-    - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
-    - curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
-    - export PATH="$HOME/.local/bin:$PATH"
-    - android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
-    - export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
-    - mkdir -p tools
-    - curl -sSLo "tools/APKEditor-${APKEDITOR_VERSION}.jar" "https://github.com/REAndroid/APKEditor/releases/download/V${APKEDITOR_VERSION}/APKEditor-${APKEDITOR_VERSION}.jar"
-    - curl -sSLo "tools/morphe-desktop-${MORPHE_VERSION}-all.jar" "https://github.com/MorpheApp/morphe-desktop/releases/download/v${MORPHE_VERSION}/morphe-desktop-${MORPHE_VERSION}-all.jar"
-    - curl -sSLo base.apk "$INPUT_APK_URL"
+  script:
+    # --- preflight: fail fast on config and inputs, before burning minutes ---
+    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
+    - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
+    # APKPure hotlink-protects the download: a browser UA + referer is required.
+    - curl -sSL --retry 3 --fail -A 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36' -e 'https://apkpure.com/' -o base.xapk "$INPUT_APK_URL"
+    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
+    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
     - |
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
       fi
-    - chmod +x gradlew
-  script:
+    # --- flavors ---
     # Classic build (replaces stock Instagram).
-    - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.apk" --console=plain
+    - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.xapk" --console=plain
     - cp build/patch-report.json patch-report-classic.json
-    - test "$(jq '.failedPatches | length' build/patch-report.json)" = "0"
     # Clone build (installs alongside stock Instagram).
-    - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.apk" -Pclone --console=plain
+    - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.xapk" -Pclone --console=plain
     - cp build/patch-report.json patch-report-clone.json
-    - test "$(jq '.failedPatches | length' build/patch-report.json)" = "0"
+    # --- gates: nothing failed AND nothing silently missing ---
+    - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
+    - test "$(jq '.failedPatches | length' patch-report-clone.json)" = "0"
+    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches.txt -
+    - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches.txt -
+    # --- verify: signatures, identities, release-key pin ---
+    - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
+    - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
+    - test "$(aapt dump badging unhooked-classic.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android"
+    - test "$(aapt dump badging unhooked-clone.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android.unhooked"
+    - |
+      # Both sides are normalized (colons stripped) since keytool and
+      # apksigner print the same digest with different separators/casing.
+      if [ -n "$RELEASE_CERT_SHA256" ]; then
+        PIN=$(echo "$RELEASE_CERT_SHA256" | tr -d ':')
+        tr -d ':' < certs-classic.txt | grep -qi "$PIN" || (echo "classic APK not signed with the release key" >&2 && exit 1)
+        tr -d ':' < certs-clone.txt | grep -qi "$PIN" || (echo "clone APK not signed with the release key" >&2 && exit 1)
+      else
+        echo "WARNING: RELEASE_CERT_SHA256 unset — cert pin skipped"
+      fi
     - ls -la unhooked-classic.apk unhooked-clone.apk
   artifacts:
     expire_in: 2 weeks
@@ -65,3 +98,40 @@ build-apks:
       - unhooked-clone.apk
       - patch-report-classic.json
       - patch-report-clone.json
+
+publish-release:
+  stage: publish
+  image: eclipse-temurin:21-jdk-jammy
+  timeout: 10m
+  interruptible: false
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  needs:
+    - job: build-apks
+      artifacts: true
+  script:
+    - VERSION=$(grep '^version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
+    - IG_VERSION=$(aapt dump badging unhooked-classic.apk | grep -o "versionName='[^']*'" | cut -d"'" -f2)
+    - test -n "$VERSION" || (echo "no version in gradle.properties" >&2 && exit 1)
+    - |
+      if [ "$(curl -s -o /dev/null -w '%{http_code}' "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases/v$VERSION")" = "200" ]; then
+        echo "Release v$VERSION already exists — build verified only."
+        exit 0
+      fi
+    - test -n "$UNHOOKED_KEYSTORE_PASS" || (echo "refusing to publish without the release key" >&2 && exit 1)
+    - test -n "$GITLAB_API_TOKEN" || (echo "refusing to publish without GITLAB_API_TOKEN" >&2 && exit 1)
+    - PKG="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/unhooked/v$VERSION"
+    - 'curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file unhooked-classic.apk "$PKG/unhooked-classic.apk"'
+    - 'curl --fail --header "JOB-TOKEN: $CI_JOB_TOKEN" --upload-file unhooked-clone.apk "$PKG/unhooked-clone.apk"'
+    - |
+      jq -n --arg v "$VERSION" --arg ig "$IG_VERSION" --arg sha "$CI_COMMIT_SHA" --arg pkg "$PKG" '{
+        name: ("Unhooked " + $v),
+        tag_name: ("v" + $v),
+        ref: $sha,
+        description: ("## Unhooked " + $v + "\nBased on Instagram " + $ig + ".\n\n### Download\n\n- Classic APK (replaces Instagram)\n- Clone APK (installs alongside stock Instagram)\n"),
+        assets: { links: [
+          { name: "unhooked-classic.apk", url: ($pkg + "/unhooked-classic.apk"), link_type: "other" },
+          { name: "unhooked-clone.apk", url: ($pkg + "/unhooked-clone.apk"), link_type: "other" }
+        ] }
+      }' > release.json
+    - 'curl --fail --request POST --header "PRIVATE-TOKEN: $GITLAB_API_TOKEN" --header "Content-Type: application/json" --data @release.json "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases"'
