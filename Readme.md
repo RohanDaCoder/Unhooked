@@ -1,5 +1,4 @@
 <div align="center">
-  <img src="docs/app_icon.png" alt="Unhooked logo" width="128" height="128">
   <h1>Unhooked</h1>
   <p><strong>Instagram without Reels, feed, Explore or ads.</strong></p>
   <p>
@@ -24,7 +23,6 @@
     ·
     <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/issues">Issues</a>
   </p>
-  <img src="docs/preview.png" alt="Unhooked social preview" width="720">
 </div>
 
 ## What it does
@@ -41,12 +39,8 @@ tab at the bottom-left of the main tab bar to open the Unhooked settings page
 (a one-time hint points you at it on your first signed-in launch). A single
 APK covers every combination.
 
-<table align="center">
-  <tr>
-    <td><img src="docs/screens.png" alt="Unhooked screenshots" width="480"></td>
-    <td><img src="docs/tuto.gif" alt="Unhooked settings tutorial" width="220"></td>
-  </tr>
-</table>
+> Screenshots and the settings tutorial were removed with the old branding —
+> fresh ones will be captured from an Unhooked build.
 
 ## Features
 

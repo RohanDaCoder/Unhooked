@@ -29,14 +29,6 @@ reels-blocker
 instagram-reels
 ```
 
-## Social preview
-
-Use this image as the GitHub repository social preview:
-
-```txt
-assets/social-preview.png
-```
-
 ## Releases
 
 Use `.github/RELEASE_TEMPLATE.md` when drafting releases.
