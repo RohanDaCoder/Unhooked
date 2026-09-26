@@ -36,12 +36,19 @@ cache:
     - .gradle/wrapper/
     - android-sdk/
     - tools/
+    - base.xapk
+    - base.url
+    - base.xapk
 
 before_script:
   - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
-  - curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+  - |
+    [ -x "$HOME/.local/bin/android" ] || \
+      curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
   - export PATH="$HOME/.local/bin:$PATH"
-  - android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
+  - |
+    [ -d "$ANDROID_HOME/build-tools/36.0.0" ] || \
+      android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
   - export PATH="$ANDROID_HOME/build-tools/36.0.0:$ANDROID_HOME/platform-tools:$PATH"
   - chmod +x gradlew
 
@@ -56,7 +63,15 @@ build-apks:
     # --- preflight: fail fast on config and inputs, before burning minutes ---
     - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
     - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
-    - curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
+    # base.xapk is cached across runs (immutable at its registry path); the
+    # size/zip checks below still run every time and take seconds. The .url
+    # sidecar forces a re-download when INPUT_APK_URL changes, so a new base
+    # can never silently reuse a stale cached file.
+    - |
+      if [ ! -f base.xapk ] || [ "$(cat base.url 2>/dev/null)" != "$INPUT_APK_URL" ]; then
+        curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
+        echo "$INPUT_APK_URL" > base.url
+      fi
     - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
     - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
     - |
