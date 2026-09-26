@@ -13,8 +13,9 @@ Instagram APK to produce `unhooked.apk`. Two modules, one pipeline.
   `signApk` → `buildApk`; `installApk` deploys (needs `-Pinstall`).
 - `gradle/libs.versions.toml` — Morphe versions + tool-binary pins.
 - `build/patch-report.json` — machine-readable patch result (see Verification).
-- `.gitlab/expected-patches.txt` — every patch a release build must apply; CI
-  diffs the report against it.
+- `.gitlab/expected-patches-classic.txt` / `-clone.txt` — the exact patch
+  lists a release build must apply (10/11, comment-free so CI can diff
+  literally).
 - `.gitlab-ci.yml` — merge-gated release press, `main` only (see CI).
 - `docs/` — mostly website; `docs/BUILD_FROM_SOURCE.md` (build reqs),
   `docs/DESIGN.md` (UI rules), `docs/superpowers/plans/` (feature plans).
@@ -38,8 +39,8 @@ carry the extension). Signing reads `UNHOOKED_KEYSTORE[/_PASS/_ALIAS]` from
 env/`.env`; without the pass the patcher throwaway-signs and `signApk` skips.
 
 Then check `build/patch-report.json`: all patches under `appliedPatches`,
-`failedPatches: []`, **and** the applied list matches
-`.gitlab/expected-patches.txt`. A `BUILD SUCCESSFUL` alone proves nothing about
+`failedPatches: []`, **and** the applied list matches the per-flavor
+`.gitlab/expected-patches-*.txt`. A `BUILD SUCCESSFUL` alone proves nothing about
 patch application. On-device smoke + `logcat -d *:E` for `AndroidRuntime` is
 the final gate. Clone package id: `com.instagram.android.unhooked`.
 
