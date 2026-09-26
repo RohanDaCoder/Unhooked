@@ -2,7 +2,7 @@
 morphe-patcher = "1.5.2"
 morphe-patches-library = "1.2.0"
 # Tool binaries fetched by the root setupTools task (see build.gradle.kts).
-morphe-desktop = "1.16.0"
+morphe-desktop = "1.17.0"
 apkeditor = "1.4.9"
 #noinspection GradleDependency
 smali = "d92701d947"
