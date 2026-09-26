@@ -112,7 +112,7 @@ with it), not the YAML. Tool jars need no manual step:
 ## Device testing
 
 - `android` CLI first (`install --device=... --apks=...`, `layout`, `screen
-  capture`); `adb` only where the CLI has no equivalent (logcat, input,
+capture`); `adb` only where the CLI has no equivalent (logcat, input,
   `am start`). Read `android-cli` skill references `interact.md` (before any
   layout/screen use) and `journeys.md` (before journey runs).
 - Parse `android layout` output piped through `Select-String` — never `--output`
@@ -139,7 +139,7 @@ with it), not the YAML. Tool jars need no manual step:
   `.env`, `*.keystore`, or `tools/` jars.
 - Quote `-Papk="..."` — stock APK filenames contain parens, which break nested
   shell quoting. Quote SDK package names: `android sdk install
-  'platforms;android-30'` — bare `;` splits statements.
+'platforms;android-30'` — bare `;` splits statements.
 - YAML `: ` inside plain scalars is a mapping error — quote script lines
   containing it (`'curl ... "Content-Type: application/json" ...'`). Never
   backslash-escape quotes inside them: `\"` survives literally and breaks the

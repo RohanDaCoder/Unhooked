@@ -22,22 +22,22 @@ than inventing one locally; that is what keeps the surfaces consistent.
 
 ## Colour
 
-| Token | Value | Used for |
-|---|---|---|
-| `SURFACE` | `#0E0E0E` | Page background |
-| `SURFACE_CONTAINER` | `#1B1B1B` | Cards, list rows, the notes panel |
-| `SURFACE_CONTAINER_HIGH` | `#262626` | Tonal buttons, a card raised over a page |
-| `ON_SURFACE` | `#F4F4F4` | Primary text, icons |
-| `ON_SURFACE_VARIANT` | `#ABABAB` | Supporting text, section labels |
-| `OUTLINE` | `#757575` | Unchecked control marks (switch thumb, radio) |
-| `OUTLINE_VARIANT` | `#3A3A3A` | Hairline borders, unchecked switch tracks |
-| `PRIMARY` | `#FFFFFF` | The accent: filled buttons, checked controls, progress |
-| `ON_PRIMARY` | `#101010` | Text on a filled accent |
-| `ERROR` / `ON_ERROR` | same as `PRIMARY` / `ON_PRIMARY` | See below |
-| `RIPPLE` | `#26FFFFFF` | Every pressed state |
+| Token                    | Value                            | Used for                                               |
+| ------------------------ | -------------------------------- | ------------------------------------------------------ |
+| `SURFACE`                | `#0E0E0E`                        | Page background                                        |
+| `SURFACE_CONTAINER`      | `#1B1B1B`                        | Cards, list rows, the notes panel                      |
+| `SURFACE_CONTAINER_HIGH` | `#262626`                        | Tonal buttons, a card raised over a page               |
+| `ON_SURFACE`             | `#F4F4F4`                        | Primary text, icons                                    |
+| `ON_SURFACE_VARIANT`     | `#ABABAB`                        | Supporting text, section labels                        |
+| `OUTLINE`                | `#757575`                        | Unchecked control marks (switch thumb, radio)          |
+| `OUTLINE_VARIANT`        | `#3A3A3A`                        | Hairline borders, unchecked switch tracks              |
+| `PRIMARY`                | `#FFFFFF`                        | The accent: filled buttons, checked controls, progress |
+| `ON_PRIMARY`             | `#101010`                        | Text on a filled accent                                |
+| `ERROR` / `ON_ERROR`     | same as `PRIMARY` / `ON_PRIMARY` | See below                                              |
+| `RIPPLE`                 | `#26FFFFFF`                      | Every pressed state                                    |
 
 **Destructive actions are not red.** A monochrome scheme has no red to lean on, so a
-destructive action would carry the ordinary accent and be made clear by its *wording*
+destructive action would carry the ordinary accent and be made clear by its _wording_
 and by a confirmation card that spells out the consequence. (There are currently none:
 restart is the only confirmation, and it is not destructive.)
 
@@ -50,13 +50,13 @@ That is fine: they are content, not chrome.
 
 M3 Expressive leans on shape rather than colour, so the corner scale carries a lot here.
 
-| Constant | Value | Used for |
-|---|---|---|
-| `CORNER_XL` | 28dp | Cards, dialogs |
-| `CORNER_L` | 24dp | The **outer** corners of a connected list group |
-| `CORNER_JOINT` | 4dp | The corners **between** rows of a group |
-| `CORNER_FULL` | 200dp | Pills — `GradientDrawable` clamps to half the height |
-| `ROW_GAP_DP` | 3dp | Gap between rows of a group |
+| Constant       | Value | Used for                                             |
+| -------------- | ----- | ---------------------------------------------------- |
+| `CORNER_XL`    | 28dp  | Cards, dialogs                                       |
+| `CORNER_L`     | 24dp  | The **outer** corners of a connected list group      |
+| `CORNER_JOINT` | 4dp   | The corners **between** rows of a group              |
+| `CORNER_FULL`  | 200dp | Pills — `GradientDrawable` clamps to half the height |
+| `ROW_GAP_DP`   | 3dp   | Gap between rows of a group                          |
 
 ### Connected lists
 
@@ -89,15 +89,15 @@ backgrounds and the gaps from the child count. Never hand-roll the radii.
 Roboto (`sans-serif`) only; there is no font asset to bundle. Weight and tracking do the
 expressive work.
 
-| Helper | Size | Weight | Tracking | Used for |
-|---|---|---|---|---|
-| `headline(v)` | 30sp | medium | −0.02 | The title of a full-screen page |
-| `titleLarge(v)` | 22sp | medium | −0.01 | Card titles, section headings in notes |
-| `body(v)` | 14sp | regular | 0 | Supporting text, at 1.15 line spacing |
-| section label | 13sp | medium | +0.01 | `ON_SURFACE_VARIANT`, above a group |
-| row label | 16sp | regular | 0 | `ON_SURFACE` |
-| row support | 13sp | regular | 0 | `ON_SURFACE_VARIANT` |
-| button label | 15sp | medium | 0 | Never all-caps |
+| Helper          | Size | Weight  | Tracking | Used for                               |
+| --------------- | ---- | ------- | -------- | -------------------------------------- |
+| `headline(v)`   | 30sp | medium  | −0.02    | The title of a full-screen page        |
+| `titleLarge(v)` | 22sp | medium  | −0.01    | Card titles, section headings in notes |
+| `body(v)`       | 14sp | regular | 0        | Supporting text, at 1.15 line spacing  |
+| section label   | 13sp | medium  | +0.01    | `ON_SURFACE_VARIANT`, above a group    |
+| row label       | 16sp | regular | 0        | `ON_SURFACE`                           |
+| row support     | 13sp | regular | 0        | `ON_SURFACE_VARIANT`                   |
+| button label    | 15sp | medium  | 0        | Never all-caps                         |
 
 **Section labels are sentence case** — "Blocked surfaces", not "BLOCKED SURFACES". All-caps
 labels are the old Material; M3 dropped them.
@@ -135,7 +135,7 @@ control.
 ### Switches
 
 `android.widget.Switch`, tinted. One trap: **the platform track drawable is
-alpha-blended**, so tinting the track white produces the grey M3 track — the *thumb* is
+alpha-blended**, so tinting the track white produces the grey M3 track — the _thumb_ is
 what carries the accent.
 
 ```java
@@ -183,7 +183,7 @@ root goes through it.
 
 Two traps worth knowing before you write a layout that measures itself:
 
-1. **`requestApplyInsets()` is asynchronous.** The first layout pass runs with *zero*
+1. **`requestApplyInsets()` is asynchronous.** The first layout pass runs with _zero_
    insets. Anything that sizes itself from the available space must re-check on a
    `ViewTreeObserver.OnGlobalLayoutListener` — `addOnLayoutChangeListener` on a
    match-parent view never fires again, because its own bounds never change.

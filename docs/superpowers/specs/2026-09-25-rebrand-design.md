@@ -7,6 +7,7 @@ applied to stock Instagram APK, producing `feurstagram.apk`. The brand string
 is load-bearing across code, build, runtime, docs, site, and assets.
 
 Current touchpoints (verified by grep):
+
 - Code namespaces: `com.feurstagram.patches.*`, `com.feurstagram.extension`
   (`ClonePatch.kt:1`, `Constants.kt:9`, `Config.java:1`, `UpdateChecker.java:1`).
 - Build: `settings.gradle.kts:1` (`feurstagram-patches`), `build.sh:34,68-69`
@@ -37,12 +38,12 @@ Current touchpoints (verified by grep):
 
 ## Token map
 
-| Token | Meaning | Example | Used for |
-|---|---|---|---|
-| `Brand` | Display/capitalized | `NewName` | App label (`ClonePatch appName`), Settings titles, docs headings, `USER_AGENT` prefix, `Blocked by <Brand>` |
-| `brand` | Lowercase | `newname` | Package suffix (`com.instagram.android.<brand>`), dirs `com/<brand>/...`, prefs (`<brand>_prefs`), APK (`<brand>.apk`), keystore (`<brand>.keystore`) |
-| `BRAND` | Uppercase | `NEWNAME` | Env vars (`<BRAND>_KEYSTORE_PASS`, `<BRAND>_KEYSTORE`, `<BRAND>_KEY_ALIAS`) |
-| `Repo` | GitHub repo name | `NewName` | `UpdateChecker REPO = <owner>/<Repo>`, site URLs (`<owner>.github.io/<Repo>/`), badges, release template |
+| Token   | Meaning             | Example   | Used for                                                                                                                                              |
+| ------- | ------------------- | --------- | ----------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `Brand` | Display/capitalized | `NewName` | App label (`ClonePatch appName`), Settings titles, docs headings, `USER_AGENT` prefix, `Blocked by <Brand>`                                           |
+| `brand` | Lowercase           | `newname` | Package suffix (`com.instagram.android.<brand>`), dirs `com/<brand>/...`, prefs (`<brand>_prefs`), APK (`<brand>.apk`), keystore (`<brand>.keystore`) |
+| `BRAND` | Uppercase           | `NEWNAME` | Env vars (`<BRAND>_KEYSTORE_PASS`, `<BRAND>_KEYSTORE`, `<BRAND>_KEY_ALIAS`)                                                                           |
+| `Repo`  | GitHub repo name    | `NewName` | `UpdateChecker REPO = <owner>/<Repo>`, site URLs (`<owner>.github.io/<Repo>/`), badges, release template                                              |
 
 Case-sensitive pass covers all four legacy casings: `Feurstagram`,
 `feurstagram`, `FEURSTAGRAM`, `FeurStagram` (repo-casing in URLs).

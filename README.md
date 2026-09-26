@@ -27,12 +27,12 @@
 
 ## What it does
 
-| Keep using Instagram for | Remove or block |
-| ------------------------ | --------------- |
-| Direct Messages (including Reels shared in DMs) | Endless Home feed |
-| Stories | Reels surfaces |
-| Search, profiles and deep links | Explore and suggested-account recommendations |
-| Notifications | Ads, shopping preloads, and telemetry |
+| Keep using Instagram for                        | Remove or block                               |
+| ----------------------------------------------- | --------------------------------------------- |
+| Direct Messages (including Reels shared in DMs) | Endless Home feed                             |
+| Stories                                         | Reels surfaces                                |
+| Search, profiles and deep links                 | Explore and suggested-account recommendations |
+| Notifications                                   | Ads, shopping preloads, and telemetry         |
 
 All content blocks are **individual runtime toggles** — long-press the Home
 tab at the bottom-left of the main tab bar to open the Unhooked settings page
@@ -44,19 +44,19 @@ APK covers every combination.
 
 ## Features
 
-| Feature | Default | Toggleable | How |
-| ------- | ------- | ---------- | --- |
-| **Home Feed** | Blocked | Yes | Network-level blocking |
-| **Following feed only** | Off | Yes | Feed-request header rewrite |
-| **Explore** | Blocked | Yes | Network-level blocking |
-| **Reels** | Blocked | Yes | Network-level blocking + Tab hidden |
-| **Stories** | Visible | Yes | Network-level blocking |
-| **Suggested accounts** | Blocked | Yes | Network-level + feed-parse blocking |
-| **Instants (+ button in DMs)** | Blocked | Yes | View visibility hidden |
-| **Notes (text bubbles above DMs)** | Blocked | Yes | View visibility hidden |
-| **Ads** | Blocked | Yes | Network-level + feed-parse blocking |
-| **Analytics & telemetry** | Blocked | No | Always blocked |
-| **Shopping / commerce preloads** | Blocked | No | Always blocked |
+| Feature                            | Default | Toggleable | How                                 |
+| ---------------------------------- | ------- | ---------- | ----------------------------------- |
+| **Home Feed**                      | Blocked | Yes        | Network-level blocking              |
+| **Following feed only**            | Off     | Yes        | Feed-request header rewrite         |
+| **Explore**                        | Blocked | Yes        | Network-level blocking              |
+| **Reels**                          | Blocked | Yes        | Network-level blocking + Tab hidden |
+| **Stories**                        | Visible | Yes        | Network-level blocking              |
+| **Suggested accounts**             | Blocked | Yes        | Network-level + feed-parse blocking |
+| **Instants (+ button in DMs)**     | Blocked | Yes        | View visibility hidden              |
+| **Notes (text bubbles above DMs)** | Blocked | Yes        | View visibility hidden              |
+| **Ads**                            | Blocked | Yes        | Network-level + feed-parse blocking |
+| **Analytics & telemetry**          | Blocked | No         | Always blocked                      |
+| **Shopping / commerce preloads**   | Blocked | No         | Always blocked                      |
 
 **Following feed only** is a softer alternative to blocking the Home Feed
 entirely: leave the feed unblocked and turn this on to get a chronological feed
@@ -116,5 +116,5 @@ Released under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
 Built with the [Morphe](https://morphe.software) patcher and adapting patch
 ideas from [Piko](https://github.com/crimera/piko); see [NOTICE](NOTICE).
 
-*Unhooked is a fork of [Feurstagram](https://github.com/jean-voila/Feurstagram),
-independently maintained and unaffiliated with Instagram or Meta.*
+_Unhooked is a fork of [Feurstagram](https://github.com/jean-voila/Feurstagram),
+independently maintained and unaffiliated with Instagram or Meta._

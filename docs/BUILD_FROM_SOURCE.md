@@ -15,7 +15,7 @@ you inspect the patches and avoid trusting a prebuilt APK.
 - A supported Instagram APK: the pinned base from this project's Package
   Registry (`unhooked-base`), fetched with
   `glab packages download --name unhooked-base --version <ig-version>
-  --filename base-<ig-version>.xapk`
+--filename base-<ig-version>.xapk`
 
 ## Steps
 
@@ -83,7 +83,7 @@ Configure these CI/CD variables (Settings → CI/CD → Variables):
   self-hosted base in this project's Package Registry,
   `unhooked-base/<ig-version>/base-<ig-version>.xapk`; to qualify a new base,
   upload it there with `glab packages upload <file> --name unhooked-base
-  --version <ig-version>` and update the default).
+--version <ig-version>` and update the default).
 - Release signing: `UNHOOKED_KEYSTORE_B64` (plain variable with the base64
   keystore text), `UNHOOKED_KEYSTORE_PASS`, `UNHOOKED_KEY_ALIAS`.
 - `RELEASE_CERT_SHA256` — expected cert fingerprint from
