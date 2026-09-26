@@ -34,17 +34,10 @@ build-apks:
       - .gradle/wrapper/
       - android-sdk/
   before_script:
-    - apt-get update -y -qq && apt-get install -y -qq unzip curl jq > /dev/null
-    - |
-      if [ ! -x "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" ]; then
-        curl -sSLo cmdtools.zip https://dl.google.com/android/repository/commandlinetools-linux-11076708_latest.zip
-        mkdir -p "$ANDROID_HOME/cmdline-tools"
-        unzip -q cmdtools.zip -d "$ANDROID_HOME/cmdline-tools"
-        mv "$ANDROID_HOME/cmdline-tools/cmdline-tools" "$ANDROID_HOME/cmdline-tools/latest"
-        rm cmdtools.zip
-        yes | "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" --licenses > /dev/null || true
-        "$ANDROID_HOME/cmdline-tools/latest/bin/sdkmanager" "platform-tools" "platforms;android-35" "platforms;android-36" "build-tools;36.0.0"
-      fi
+    - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
+    - curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
+    - export PATH="$HOME/.local/bin:$PATH"
+    - android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
     - export PATH="$ANDROID_HOME/cmdline-tools/latest/bin:$ANDROID_HOME/platform-tools:$PATH"
     - mkdir -p tools
     - curl -sSLo "tools/APKEditor-${APKEDITOR_VERSION}.jar" "https://github.com/REAndroid/APKEditor/releases/download/V${APKEDITOR_VERSION}/APKEditor-${APKEDITOR_VERSION}.jar"
