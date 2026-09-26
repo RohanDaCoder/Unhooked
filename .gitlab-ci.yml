@@ -55,7 +55,8 @@ build-apks:
     # --- preflight: fail fast on config and inputs, before burning minutes ---
     - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
     - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
-    - curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
+    # APKPure hotlink-protects the download: a browser UA + referer is required.
+    - curl -sSL --retry 3 --fail -A 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36' -e 'https://apkpure.com/' -o base.xapk "$INPUT_APK_URL"
     - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
     - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
     - |

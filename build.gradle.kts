@@ -277,14 +277,14 @@ val patchApk = tasks.register<JavaExec>("patchApk") {
     inputs.property("debug", debugEnabled)
     inputs.property("deferSigning", keystorePass.isNotEmpty())
     outputs.file(layout.buildDirectory.file("patch-report.json"))
-    outputs.file(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked")
+    outputs.file(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk")
     doFirst {
         val input = apkFile()
         val cli = newestJar("tools", "morphe-desktop-", "morphe-cli-")
             ?: throw GradleException("Morphe CLI not found under tools/ (morphe-cli-*.jar / morphe-desktop-*.jar).")
         val effective = if (isSplitBundle(input)) mergedApkFile() else input
         val report = layout.buildDirectory.file("patch-report.json").get().asFile
-        val out = rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked")
+        val out = rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk")
         classpath(files(cli))
         mainClass.set(jarMainClass(cli))
         val patchArgs = mutableListOf(
@@ -309,11 +309,11 @@ val signApk = tasks.register<Exec>("signApk") {
     group = "unhooked"
     description = "Signs unhooked.apk with the release keystore (skipped without UNHOOKED_KEYSTORE_PASS)."
     dependsOn(patchApk)
-    inputs.file(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked")
+    inputs.file(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk")
     inputs.property("keystore", envOrDotEnv("UNHOOKED_KEYSTORE") ?: "unhooked.keystore")
     inputs.property("alias", envOrDotEnv("UNHOOKED_KEY_ALIAS") ?: "unhooked")
     inputs.property("passwordSet", keystorePass.isNotEmpty())
-    outputs.file(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked")
+    outputs.file(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk")
     onlyIf("release keystore password set") { keystorePass.isNotEmpty() }
     doFirst {
         val keystore = envOrDotEnv("UNHOOKED_KEYSTORE")?.let(::File)
@@ -321,7 +321,7 @@ val signApk = tasks.register<Exec>("signApk") {
         if (!keystore.isFile) throw GradleException("Keystore not found: $keystore")
         val alias = envOrDotEnv("UNHOOKED_KEY_ALIAS") ?: "unhooked"
         val keyPass = envOrDotEnv("UNHOOKED_KEY_PASS") ?: keystorePass
-        val out = rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked")
+        val out = rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk")
         // v1+v2+v3 so the signature is accepted across the whole user base's
         // devices; v4 (the .idsig sidecar) is only useful for adb incremental
         // install, so leave it off.
@@ -341,7 +341,7 @@ val signApk = tasks.register<Exec>("signApk") {
             val proc = ProcessBuilder(
                 listOf(
                     newestBuildTool("apksigner").absolutePath, "verify", "--print-certs",
-                    rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked").absolutePath,
+                    rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk").absolutePath,
                 )
             ).redirectErrorStream(true).start()
             val text = proc.inputStream.bufferedReader().readText()
@@ -360,7 +360,7 @@ tasks.register<Exec>("installApk") {
     dependsOn(signApk)
     onlyIf("install flag") { installEnabled }
     doFirst {
-        commandLine(adb(), "install", "-r", rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked"))
+        commandLine(adb(), "install", "-r", rootDir.resolve(envOrDotEnv("UNHOOKED_OUTPUT_PATH") ?: "unhooked.apk"))
     }
 }
 
