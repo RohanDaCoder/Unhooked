@@ -95,8 +95,8 @@ build-apks:
     # --- verify: signatures, identities, release-key pin ---
     - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
     - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
-    - test "$(aapt dump badging unhooked-classic.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android"
-    - test "$(aapt dump badging unhooked-clone.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android.unhooked"
+    - test "$(aapt dump badging unhooked-classic.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android"
+    - test "$(aapt dump badging unhooked-clone.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android.unhooked"
     - |
       # Both sides are normalized (colons stripped) since keytool and
       # apksigner print the same digest with different separators/casing.
