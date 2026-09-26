@@ -34,9 +34,9 @@ local.properties
 # Generated version stamp (recreated by generateUnhookedVersion every build)
 extensions/extension/src/main/java/com/unhooked/extension/UnhookedVersion.java
 
-# IDE
-*.iml
-/.idea
+# IDE (share run configurations, ignore the rest)
+.idea/*
+!.idea/runConfigurations/
 
 # OS
 .DS_Store
