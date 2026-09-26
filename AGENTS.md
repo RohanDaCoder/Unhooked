@@ -46,7 +46,10 @@ the final gate. Clone package id: `com.instagram.android.unhooked`.
 
 Setup prerequisites: JDK 21, Android SDK, and a GitHub token with
 `read:packages` (`~/.gradle/gradle.properties` as `gpr.user`/`gpr.key`, or
-`GITHUB_TOKEN` env) for the Morphe registry. Tool jars need no manual step:
+`GITHUB_TOKEN` env) for the Morphe registry. A dead registry token is masked
+locally by the Gradle cache (builds keep passing) and only surfaces in CI —
+if plugin resolution fails there, check token validity first (`gh api user`
+with it), not the YAML. Tool jars need no manual step:
 `setupTools` fetches APKEditor + Morphe CLI into `tools/` (SHA-256 pinned);
 `mergeSplits`/`patchApk` depend on it.
 
@@ -137,6 +140,8 @@ Setup prerequisites: JDK 21, Android SDK, and a GitHub token with
   shell quoting. Quote SDK package names: `android sdk install
   'platforms;android-30'` — bare `;` splits statements.
 - YAML `: ` inside plain scalars is a mapping error — quote script lines
-  containing it (`'curl ... "Content-Type: application/json" ...'`).
+  containing it (`'curl ... "Content-Type: application/json" ...'`). Never
+  backslash-escape quotes inside them: `\"` survives literally and breaks the
+  shell quoting (proven — plain double quotes work, escaped ones don't).
 - `yes | sdkmanager --licenses` dies with SIGPIPE (141) under pipefail — the
   repo no longer uses sdkmanager (android CLI instead); don't reintroduce it.
