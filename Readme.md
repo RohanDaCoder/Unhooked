@@ -3,249 +3,147 @@
   <h1>Unhooked</h1>
   <p><strong>Instagram without Reels, feed, Explore or ads.</strong></p>
   <p>
-    Unhooked is <a href="https://jean-voila.github.io/Unhooked/instagram-without-reels/">Instagram without Reels</a>:
-    an open-source patch for the official Android app that removes the feed,
-    Reels, Explore, ads and telemetry, while keeping DMs, stories, search,
+    An open-source patch for the official Android app that removes the feed,
+    Reels, Explore, ads and telemetry — while keeping DMs, stories, search,
     notifications and profiles.
   </p>
+  <p>
+    <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/releases"><img alt="Latest release" src="https://img.shields.io/gitlab/v/tag/RohanDaCoder/Unhooked?style=flat-square&label=release&color=10a37f"></a>
+    <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPLv3-6b7280?style=flat-square"></a>
+  </p>
+  <p>
+    <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/releases"><strong>Download APK</strong></a>
+    ·
+    <a href="docs/INSTALL.md">Install</a>
+    ·
+    <a href="docs/BUILD_FROM_SOURCE.md">Build from source</a>
+    ·
+    <a href="docs/FAQ.md">FAQ</a>
+    ·
+    <a href="docs/PRIVACY.md">Privacy</a>
+    ·
+    <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/issues">Issues</a>
+  </p>
+  <img src="docs/preview.png" alt="Unhooked social preview" width="720">
 </div>
 
-<p align="center">
-  <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/releases"><img alt="Latest release" src="https://img.shields.io/gitlab/v/tag/RohanDaCoder/Unhooked?style=flat-square&label=release&color=10a37f"></a>
-  <a href="LICENSE"><img alt="License" src="https://img.shields.io/badge/license-GPLv3-6b7280?style=flat-square"></a>
-  <a href="https://discord.gg/Z9QvMw8s76"><img alt="Discord" src="https://img.shields.io/badge/discord-community-5865F2?style=flat-square&logo=discord&logoColor=white"></a>
-  <a href="https://www.instagram.com/unhooked_official/"><img alt="Instagram updates" src="https://img.shields.io/badge/instagram-updates-E4405F?style=flat-square&logo=instagram&logoColor=white"></a>
-</p>
+## What it does
 
-<p align="center">
-  <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/releases"><strong>Download APK</strong></a>
-  ·
-  <a href="docs/INSTALL.md">Install</a>
-  ·
-  <a href="docs/BUILD_FROM_SOURCE.md">Build from source</a>
-  ·
-  <a href="docs/FAQ.md">FAQ</a>
-  ·
-  <a href="docs/PRIVACY.md">Privacy</a>
-  ·
-  <a href="https://gitlab.com/RohanDaCoder/Unhooked/-/issues">Issues</a>
-</p>
-
-<p align="center">
-  <img src="docs/preview.png" alt="Unhooked social preview" width="720">
-</p>
-
-## What it keeps and blocks
-
-| Keep using Instagram for | Remove or block                               |
-| ------------------------ | --------------------------------------------- |
-| Direct Messages          | Endless Home feed                             |
-| Stories                  | Reels surfaces                                |
-| Search and profiles      | Explore and suggested-account recommendations |
-| Notifications            | Ads, shopping preloads, and telemetry         |
-
-## Preview
-
-<p align="center">
-  <img src="docs/screens.png" alt="Unhooked screenshots" width="680">
-</p>
-
-<p align="center">
-  <img src="docs/tuto.gif" alt="Unhooked settings tutorial" width="300">
-</p>
-
-## Is it safe?
-
-Unhooked does not collect, proxy, store, or transmit your credentials.
-
-It patches the official Instagram Android app to remove distracting features. The patches are open source and documented, so you can inspect what is changed.
-
-For maximum trust, you can build the APK yourself instead of downloading a prebuilt release.
-
-That said, Unhooked is an unofficial project and is not affiliated with Instagram or Meta. It is a modified APK installed outside the Play Store, so Android may show installation warnings. Using a modified client may violate Instagram's terms of service. Use it at your own risk.
-
-## What Unhooked does NOT do
-
-Unhooked does not:
-
-- bypass Instagram login;
-- collect your password or session tokens;
-- proxy your traffic through a third-party server;
-- add tracking or analytics;
-- scrape accounts;
-- sell or transmit user data;
-- claim affiliation with Instagram or Meta.
-
-## Why Unhooked?
-
-Unlike WebView-based alternatives, Unhooked patches the real Android Instagram app.
-
-Unlike accessibility-service blockers, it does not simply react to the interface after it loads.
-
-Unlike closed-source Instagram mods, every patch is public and auditable.
-
-Unhooked is built for people who want to keep Instagram's useful social features without the addictive parts.
-
-I built this project for myself as an alternative to [DFInstagram](https://www.distractionfreeapps.com/) which hasn't been maintained for a long time and was difficult to update. I'm sharing it so others can do the same for themselves.
-
-**This project is entirely free and open-source.** Feel free to fork, copy, enhance, or submit pull requests - do whatever you want with it!
-
-## Documentation
-
-- [Installation guide](docs/INSTALL.md)
-- [Build from source](docs/BUILD_FROM_SOURCE.md)
-- [FAQ](docs/FAQ.md)
-- [Privacy](docs/PRIVACY.md)
-- [Contributing](CONTRIBUTING.md)
-- [Security policy](SECURITY.md)
-
-## How do I get notified when there is a new update ?
-
-Unhooked checks GitLab for a newer release on every launch and shows a
-download prompt when your build is out of date. This **automatic update check**
-is on by default and can be turned off in the Unhooked settings page
-(Updates section).
-
-There is also a story on **the official Unhooked** account every time there
-is an update:
-
-- https://www.instagram.com/unhooked_official/
-
-Just follow this account and you will get a new story on each release.
-
-## Community
-
-Join the Discord server to get support, follow updates, and discuss development:
-
-- https://discord.gg/Z9QvMw8s76
-
-## Contact
-
-Official email: **[unhooked@gmail.com](mailto:unhooked@gmail.com)**. Journalists can find facts, screenshots and logos in the [press kit](https://jean-voila.github.io/Unhooked/press/).
-
-## Installation
-
-You have two options:
-
-1. **Ready-to-install APK** - Grab the latest patched APK from the [Releases](https://gitlab.com/RohanDaCoder/Unhooked/-/releases) page and install it directly
-2. **DIY Patching** - Use the toolkit below to patch any Instagram version yourself
-
-## What Gets Disabled
+| Keep using Instagram for | Remove or block |
+| ------------------------ | --------------- |
+| Direct Messages (including Reels shared in DMs) | Endless Home feed |
+| Stories | Reels surfaces |
+| Search, profiles and deep links | Explore and suggested-account recommendations |
+| Notifications | Ads, shopping preloads, and telemetry |
 
 All content blocks are **individual runtime toggles** — long-press the Home
-tab at the bottom-left of the main tab bar to open the Unhooked settings
-page and check/uncheck what you want blocked. A single APK covers every
-combination.
+tab at the bottom-left of the main tab bar to open the Unhooked settings page
+(a one-time hint points you at it on your first signed-in launch). A single
+APK covers every combination.
 
-| Feature                            | Default | Toggleable | How                                 |
-| ---------------------------------- | ------- | ---------- | ----------------------------------- |
-| **Home Feed**                      | Blocked | Yes        | Network-level blocking              |
-| **Following feed only**            | Off     | Yes        | Feed-request header rewrite         |
-| **Explore**                        | Blocked | Yes        | Network-level blocking              |
-| **Reels**                          | Blocked | Yes        | Network-level blocking + Tab hidden |
-| **Stories**                        | Visible | Yes        | Network-level blocking              |
-| **Suggested accounts**             | Blocked | Yes        | Network-level + feed-parse blocking |
-| **Instants (+ button in DMs)**     | Blocked | Yes        | View visibility hidden              |
-| **Notes (text bubbles above DMs)** | Blocked | Yes        | View visibility hidden              |
-| **Ads**                            | Blocked | Yes        | Network-level + feed-parse blocking |
-| **Analytics & telemetry**          | Blocked | No         | Always blocked                      |
-| **Shopping / commerce preloads**   | Blocked | No         | Always blocked                      |
+<table align="center">
+  <tr>
+    <td><img src="docs/screens.png" alt="Unhooked screenshots" width="480"></td>
+    <td><img src="docs/tuto.gif" alt="Unhooked settings tutorial" width="220"></td>
+  </tr>
+</table>
+
+## Features
+
+| Feature | Default | Toggleable | How |
+| ------- | ------- | ---------- | --- |
+| **Home Feed** | Blocked | Yes | Network-level blocking |
+| **Following feed only** | Off | Yes | Feed-request header rewrite |
+| **Explore** | Blocked | Yes | Network-level blocking |
+| **Reels** | Blocked | Yes | Network-level blocking + Tab hidden |
+| **Stories** | Visible | Yes | Network-level blocking |
+| **Suggested accounts** | Blocked | Yes | Network-level + feed-parse blocking |
+| **Instants (+ button in DMs)** | Blocked | Yes | View visibility hidden |
+| **Notes (text bubbles above DMs)** | Blocked | Yes | View visibility hidden |
+| **Ads** | Blocked | Yes | Network-level + feed-parse blocking |
+| **Analytics & telemetry** | Blocked | No | Always blocked |
+| **Shopping / commerce preloads** | Blocked | No | Always blocked |
 
 **Following feed only** is a softer alternative to blocking the Home Feed
 entirely: leave the feed unblocked and turn this on to get a chronological feed
 of just the accounts you follow, with the recommended/ranked posts dropped.
 
-## What Still Works
+The settings page also covers the **navigation bar** (show/hide each bottom-bar
+icon), **Force dark** (disables Instagram's forced HDR window, on by default),
+**Allow screenshots** (off by default), and the cold-start **landing page**.
+Changing anything restarts the app via Done or Back so blocks always apply
+cleanly; settings persist in SharedPreferences (`unhooked_prefs`).
 
-| Feature             | Status |
-| ------------------- | ------ |
-| **Direct Messages** | Works  |
-| **Profile**         | Works  |
-| **Reels in DMs**    | Works  |
-| **Search**          | Works  |
-| **Notifications**   | Works  |
-| **Deep links**      | Works  |
+## Installation
 
-## Settings Page
+Grab the latest patched APK from the
+[Releases](https://gitlab.com/RohanDaCoder/Unhooked/-/releases) page, or
+follow the [installation guide](docs/INSTALL.md). Add `-Pclone` at build time
+to install Unhooked **alongside** stock Instagram instead of replacing it.
 
-**Long-press the Home tab** (the house icon at the bottom-left of Instagram's
-main tab bar). On your first signed-in launch a one-time hint points you at
-it. A full-screen, scrollable settings page opens — Material 3
-Expressive, monochrome, and padded to fit around system bars and cutouts on any
-device — with:
+## Updates
 
-- **Blocked surfaces** — toggles for Home Feed, Explore, Reels, Stories,
-  Suggested accounts, Ads, Instants, and Notes.
-- **Navigation bar** — show or hide each bottom-bar icon (Search, Reels,
-  Create, Messages, Profile) independently of the content blocks. Home always
-  stays, since long-pressing it is how you get back here. A swipe that would
-  land on a hidden tab carries straight on to the next visible one, so a hidden
-  section stays hidden instead of being one flick away.
-- **Feed** — _Following feed only_: restrict the Home Feed to accounts you
-  follow (chronological), instead of the recommended feed. Has effect only when
-  the Home Feed is left unblocked.
-- **Display** — _Force dark (disable HDR)_ (on by default): stops Instagram
-  forcing its window into HDR mode, which lifts the black floor and washes out
-  the dark UI on HDR OLED screens. Turn it off to keep Instagram's HDR behaviour.
-- **Privacy** — _Allow screenshots_ (off by default): strips FLAG_SECURE from
-  Instagram's windows so screenshots and screen recordings work in view-once
-  media and disappearing DMs, and drops the screenshot-taken report so the
-  sender is not notified.
-- **Landing page** — choose which surface the app jumps to on cold start
-  (Home feed, Search, Direct messages, or Profile). A surface whose navigation
-  icon is hidden can't be picked, and stops being used if you hide it later:
-  landing on it would hand back exactly what you removed.
-- **Updates** — after an update, the first launch shows a **What's new** card with
-  that version's release notes. Then, _Automatic update check_ (on by default): on launch,
-  Unhooked checks GitLab for a newer release and, if your build is out of
-  date, opens a page showing what changed in it. Choosing _Update_ downloads the
-  APK on a progress page you can cancel — or leave, in which case the download
-  carries on in a notification — then hands it to Android's installer. No
-  browser, no manual download. Turn the check off here if you'd rather look
-  yourself.
-- The **Done** button is pinned at the bottom so it stays
-  reachable on any screen size.
+Unhooked checks GitLab for a newer release on every launch and shows a
+download prompt when your build is out of date. The **automatic update check**
+is on by default and can be turned off in the settings page (Updates section).
+After an update, the first launch shows a **What's new** card with that
+version's release notes.
 
-Changes persist across restarts (stored in SharedPreferences
-`unhooked_prefs`).
+## Safety
 
-Once you change any setting, the page can only be left by restarting: both
-**Done** and **Back** clear the cache and relaunch, so a changed block can
-never leave the app in a half-applied state with stale content still loaded.
-If you open the page and change nothing, Back simply closes it.
+Unhooked does not collect, proxy, store, or transmit your credentials. It does
+not bypass login, add tracking, or scrape accounts — the patches are open
+source and documented, so you can inspect what is changed. For maximum trust,
+[build the APK yourself](docs/BUILD_FROM_SOURCE.md).
 
-## Requirements
+That said, Unhooked is unofficial and unaffiliated with Instagram or Meta. It
+installs outside the Play Store, so Android may show installation warnings,
+and using a modified client may violate Instagram's terms of service. Use it at
+your own risk.
 
-- JDK 21 and the Android SDK (`ANDROID_HOME` set, build-tools installed)
-- A GitHub token with the `read:packages` scope in `~/.gradle/gradle.properties`,
-  used to fetch the patcher dependency:
-  ```properties
-  gpr.user=<your-github-username>
-  gpr.key=<token-with-read:packages>
-  ```
+## Contact
 
-## Build from source
+- Discord: `rohan_ohio`
+- Email: [alzamirohan@proton.me](mailto:alzamirohan@proton.me)
 
-1. **Download the pinned Instagram base** from this project's Package Registry
-   (arm64-v8a, qualified per release):
-   ```bash
-   glab packages download --name unhooked-base --version 446.0.0.49.77 --filename base-446.xapk
-   ```
+## For developers
 
-2. **Build and apply:**
-   ```bash
-   ./gradlew buildApk "-Papk=instagram.apk"
-   ```
-   Add `-Pclone` to install Unhooked **alongside** a stock Instagram (separate
-   package and data), and run `installApk` with `-Pinstall` to push it to a
-   connected device:
-   ```bash
-   ./gradlew installApk "-Papk=instagram.apk" -Pclone -Pinstall
-   ```
-   The signed result is written to `unhooked.apk`. Set `INPUT_APK` in a local
-   `.env` file (see `.env.example`) to skip `-Papk` entirely.
+<details>
+<summary><strong>Build from source</strong></summary>
 
-## Project structure
+Requirements: JDK 21, Android SDK (`ANDROID_HOME` set), and a GitHub token
+with `read:packages` in `~/.gradle/gradle.properties` (fetches the Morphe
+patcher dependency):
+
+```properties
+gpr.user=<your-github-username>
+gpr.key=<token-with-read:packages>
+```
+
+Download the pinned Instagram base from this project's Package Registry
+(arm64-v8a, qualified per release):
+
+```bash
+glab packages download --name unhooked-base --version 446.0.0.49.77 --filename base-446.xapk
+```
+
+Then build:
+
+```bash
+./gradlew buildApk "-Papk=base-446.xapk"        # classic
+./gradlew buildApk "-Papk=base-446.xapk" -Pclone # side-by-side
+./gradlew installApk "-Papk=base-446.xapk" -Pclone -Pinstall # + deploy
+```
+
+The signed result is written to `unhooked.apk`. Set `INPUT_APK` in a local
+`.env` file (see `.env.example`) to skip `-Papk` entirely. See
+[docs/BUILD_FROM_SOURCE.md](docs/BUILD_FROM_SOURCE.md) for CI variables and
+base qualification.
+
+</details>
+
+<details>
+<summary><strong>Project structure</strong></summary>
 
 ```
 Unhooked/
@@ -282,137 +180,102 @@ Unhooked/
         └── UpdateChecker.java    # On-launch GitLab release check
 ```
 
-## Design
+Unhooked's own screens follow Material 3 Expressive in a monochrome dark
+scheme — see [docs/DESIGN.md](docs/DESIGN.md) before changing any UI.
 
-Unhooked's own screens follow Material 3 Expressive in a monochrome dark scheme —
-white is the only accent, and everything is built in code because the mod has no
-resources of its own. The tokens, shapes, type scale, component rules and the
-window-inset requirements are written down in [docs/DESIGN.md](docs/DESIGN.md); read it
-before changing or adding any UI.
+</details>
 
-## Signing
-
-The bundle is signed during `buildApk`. Set `UNHOOKED_KEYSTORE_PASS` (and
-optionally `UNHOOKED_KEY_PASS`) to sign with `unhooked.keystore`;
-otherwise a throwaway keystore is generated. Reuse the same keystore across
-builds to install updates without uninstalling first. Secret values may live in
-a local `.env` file instead of the environment (see `.env.example`);
-environment variables take precedence.
-
-## Debugging
-
-Blocked requests surface as `java.io.IOException: Blocked by Unhooked` in
-logcat:
-
-```bash
-adb logcat | grep "Blocked by Unhooked"
-```
-
-## How It Works
+<details>
+<summary><strong>How it works</strong></summary>
 
 Patches locate their injection points by **fingerprint** (matching code by
 stable traits like class names, strings and method shapes) rather than by
 obfuscated names, so they keep applying across Instagram updates. The runtime
 logic lives in compiled extension classes that are merged into the app.
 
-### Settings Hook
+**Settings hook.** A fingerprint matches the main tab-bar binder and injects a
+watcher on it. The watcher resolves the `feed_tab` id via
+`Resources.getIdentifier(...)`, grabs the Home tab once laid out, and installs
+a long-press listener that opens the settings page. The same hook installs the
+navigation-tab/Notes/Instants hiders, the hidden-tab swipe skipper and the
+cold-start landing-page redirect.
 
-A fingerprint matches the main tab-bar binder and injects a watcher on it. The
-watcher resolves the `feed_tab` id via `Resources.getIdentifier(...)`, grabs
-the Home tab once laid out, and installs a long-press listener. Long-pressing
-opens a full-screen Material dark page: content toggles plus a landing-page
-selector, all backed by `SharedPreferences` (`unhooked_prefs`). The same
-hook installs the navigation-tab/Notes/Instants hiders, the hidden-tab swipe
-skipper and the cold-start landing-page redirect.
+**Network blocking.** A fingerprint matches `TigonServiceLayer.startRequest`
+and injects a call on the request URI. Blocked calls throw an `IOException`, so
+the surface fails to load and stays empty. Blocked requests surface as
+`java.io.IOException: Blocked by Unhooked` in logcat (`adb logcat | grep
+"Blocked by Unhooked"`).
 
-### Network Blocking
+**Feed item filtering.** Ads and "suggested" units arrive inline inside the
+normal `/feed/timeline/` response, so URL blocking can't touch them. A second
+fingerprint matches the feed-item JSON deserialiser (by wire-format type tokens
+like `clips_netego` and the `parseFromJson` name) and rewrites a blocked unit's
+type token to an invalid one, which Instagram's own parser drops — no crash.
 
-A fingerprint matches `TigonServiceLayer.startRequest` (a named class) and
-injects a call on the request URI. Blocked calls throw an `IOException`, so the
-surface fails to load and stays empty.
+**Following feed only.** A fingerprint matches the main-feed request class and
+rewrites its `pagination_source` header from the recommended feed to
+`following`. The header field is obfuscated, so it is resolved dynamically each
+build.
 
-### Feed Item Filtering
+**Deep-link signature bypass.** Instagram checks the APK is Meta-signed before
+following deep links into its own content; a patch forces those trust checks to
+pass (matched on a stable error string, no per-version maintenance).
 
-Network blocking can't touch ads and "suggested" units that Instagram injects
-**inline** into the Home Feed payload — they arrive inside the normal
-`/feed/timeline/` response, not on a separate URL. A second fingerprint matches
-the feed-item JSON deserialiser (by the stable wire-format type tokens like
-`clips_netego` and the `parseFromJson` method name) and rewrites a blocked
-unit's type token to an invalid one. Instagram's own parser then routes it to
-its "unknown FeedItem type" branch and drops it — no crash. Ad/promo units are
-gated on the **Ads** toggle, suggested/netego units on the **Suggested
-accounts** toggle.
+**Force SDR display.** Instagram switches its window into HDR mode at runtime,
+lifting the black floor on HDR OLED panels. A patch reroutes window
+colour-mode changes through a helper that pins SDR while **Force dark** is on
+(hooks framework `Window.setColorMode`, no per-version maintenance).
 
-### Following Feed Only
+Blocked network paths (matched with `String.contains()` on the URI path —
+adjust `extensions/.../Block.java` if Instagram changes URL shapes):
 
-A fingerprint matches the main-feed request class (by its debug-string shape)
-and rewrites the request's `pagination_source` header from the recommended feed
-to `following`, so the Home Feed returns only accounts you follow. The header
-field is obfuscated, so it is resolved dynamically each build rather than
-hardcoded. Gated on the **Following feed only** toggle.
+| Path / pattern | Purpose | Toggleable |
+| -------------- | ------- | ---------- |
+| `/feed/timeline/` | Home feed posts | Yes |
+| `/feed/reels_tray` | Stories tray | Yes |
+| `/discover/topical_explore` | Explore tab content | Yes |
+| `/clips/home/`, `/clips/discover`, `/clips/get_blend_medias/` | Reels feed + discovery + Blend reels | Yes |
+| `/discover/ayml/`, `/discover/sectioned_ayml/`, `/discover/chaining/`, `/discover/recommended_accounts_for_category/`, `/discover/suggested_businesses/`, `/discover/recs_from_friends_suggestions/`, `/discover/recs_from_friends_user_info/`, `/discover/surface_with_su/`, `/discover/fetch_suggestion_details/`, `/discover/account_discovery/`, `/discover/reshare_suggestions/`, `/fbsearch/accounts_recs/`, `/friendships/feed_favorites_suggestions/`, `/friendships/share_to_friends_story_suggested_users/`, `/direct_v2/search_friending_suggestions/`, `/business/discovery/suggest_business/` | Suggested-account recommendations | Yes |
+| `/api/v1/ads/` (all `ads/*`), `/feed/async_ads_ranking/`, `/feed/shop_everything_feed_of_ads*`, `/feed/user_interests_contextual_feed_of_ads/`, `/discover/chaining_experience_contextual_ads/`, `/discover/chaining_experience_notification_ads/`, `/direct_v2/ads_for_ctd_ads_thread_view/`, `/direct_v2/should_show_ad_responses_tab/`, `/profile_ads/get_profile_ads/`, `/stories/stories_high_intent_discovery_ads/`, `/stories/stories_intent_aware_ads/`, `/commerce/product_collections/ads_collection_page/` | Sponsored ads | Yes |
+| `/logging/` | Client event logging | No |
+| `/async_ads_privacy/` | Ad-related tracking | No |
+| `/async_critical_notices/` | Engagement nudge analytics | No |
+| `/api/v1/media/.../seen/` (path contains `/api/v1/media/` and `/seen`) | Post “seen” tracking | No |
+| `/api/v1/fbupload/` | Telemetry upload | No |
+| `/api/v1/stats/` | Performance / usage stats | No |
+| `/api/v1/commerce/`, `/api/v1/shopping/`, `/api/v1/sellable_items/` | Shopping / commerce preloads | No |
 
-### Deep-link signature bypass
+Note: despite the name, `/feed/reels_tray` is the stories tray endpoint in
+Instagram internals.
 
-Instagram checks that the running APK is signed by Meta before it follows a deep
-link into its own content. A re-signed Unhooked build fails that check, so
-shared links (posts, reels, profiles) silently dropped to the home feed. A patch
-forces Instagram's signing-certificate trust checks to always pass, so it treats
-the build as genuine and deep links resolve normally. It matches on a stable
-error string rather than obfuscated names, so it needs no per-version
-maintenance.
+**New Instagram versions** usually just need a rebuild
+(`./gradlew buildApk "-Papk=<new-instagram.apk>"`) — only restructured targets
+need fingerprint adjustments.
 
-### Force SDR display
+</details>
 
-Instagram switches its window into HDR mode at runtime (server-gated per
-account), which lifts the black floor on HDR OLED panels and leaves the flat dark
-UI looking washed out for no benefit. A patch reroutes every window colour-mode
-change through an extension helper that pins the window to SDR when the **Force
-dark** toggle is on (default), keeping blacks deep; turning it off passes
-Instagram's original colour mode through untouched. It hooks the framework
-`Window.setColorMode` call, so it too needs no per-version maintenance.
+<details>
+<summary><strong>Signing</strong></summary>
 
-#### Blocked network paths
+The bundle is signed during `buildApk`. Set `UNHOOKED_KEYSTORE_PASS` (and
+optionally `UNHOOKED_KEY_PASS`) to sign with `unhooked.keystore`; otherwise a
+throwaway keystore is generated. Reuse the same keystore across builds to
+install updates without uninstalling first. Secret values may live in a local
+`.env` file instead of the environment (see `.env.example`); environment
+variables take precedence.
 
-| Path / pattern                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                             | Purpose                                                                                                                                                                    | Toggleable |
-| ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ---------- |
-| `/feed/timeline/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                          | Home feed posts                                                                                                                                                            | Yes        |
-| `/feed/reels_tray`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                         | Stories tray                                                                                                                                                               | Yes        |
-| `/discover/topical_explore`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Explore tab content                                                                                                                                                        | Yes        |
-| `/clips/home/`, `/clips/discover`, `/clips/get_blend_medias/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                              | Reels feed + discovery + Blend reels                                                                                                                                       | Yes        |
-| `/discover/ayml/`, `/discover/sectioned_ayml/`, `/discover/chaining/`, `/discover/recommended_accounts_for_category/`, `/discover/suggested_businesses/`, `/discover/recs_from_friends_suggestions/`, `/discover/recs_from_friends_user_info/`, `/discover/surface_with_su/`, `/discover/fetch_suggestion_details/`, `/discover/account_discovery/`, `/discover/reshare_suggestions/`, `/fbsearch/accounts_recs/`, `/friendships/feed_favorites_suggestions/`, `/friendships/share_to_friends_story_suggested_users/`, `/direct_v2/search_friending_suggestions/`, `/business/discovery/suggest_business/` | Suggested-account recommendations (profile "Suggested for you", stories-tray injected accounts, search null-state recs, post-follow chaining, friend/business suggestions) | Yes        |
-| `/api/v1/ads/` (all `ads/*`), `/feed/async_ads_ranking/`, `/feed/shop_everything_feed_of_ads*`, `/feed/user_interests_contextual_feed_of_ads/`, `/discover/chaining_experience_contextual_ads/`, `/discover/chaining_experience_notification_ads/`, `/direct_v2/ads_for_ctd_ads_thread_view/`, `/direct_v2/should_show_ad_responses_tab/`, `/profile_ads/get_profile_ads/`, `/stories/stories_high_intent_discovery_ads/`, `/stories/stories_intent_aware_ads/`, `/commerce/product_collections/ads_collection_page/`                                                                                      | Sponsored ads injected into the feed, stories, profile, DMs, Explore chaining and commerce                                                                                 | Yes        |
-| `/logging/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                | Client event logging                                                                                                                                                       | No         |
-| `/async_ads_privacy/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                      | Ad-related tracking                                                                                                                                                        | No         |
-| `/async_critical_notices/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                 | Engagement nudge analytics                                                                                                                                                 | No         |
-| `/api/v1/media/.../seen/` (path contains `/api/v1/media/` and `/seen`)                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     | Post “seen” tracking                                                                                                                                                       | No         |
-| `/api/v1/fbupload/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Telemetry upload                                                                                                                                                           | No         |
-| `/api/v1/stats/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                           | Performance / usage stats                                                                                                                                                  | No         |
-| `/api/v1/commerce/`, `/api/v1/shopping/`, `/api/v1/sellable_items/`                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        | Shopping / commerce preloads                                                                                                                                               | No         |
-
-Note: despite the name, `/feed/reels_tray` is the stories tray endpoint in Instagram internals.
-
-Matching uses `String.contains()` on the URI path. Instagram changes URL shapes over time; adjust the rules in `extensions/.../Block.java` if a block stops matching.
-
-## Updating for New Instagram Versions
-
-Because patches are fingerprint-based, a new Instagram version usually just
-needs a rebuild (`./gradlew buildApk "-Papk=<new-instagram.apk>"`). If Instagram restructures a
-targeted area, only the affected fingerprint needs adjusting.
+</details>
 
 ## Contributing
 
-This is a personal project I'm sharing with the community. Contributions are welcome!
-
-- 🍴 **Fork it** - Make your own version
-- 🔧 **Pull requests** - Improvements and fixes are appreciated
-- 📋 **Copy it** - Use the code however you want
-- ✨ **Enhance it** - Build something even better
+Fork it, open a pull request, or copy the code — contributions welcome. See
+[CONTRIBUTING.md](CONTRIBUTING.md) and [SECURITY.md](SECURITY.md).
 
 ## License
 
-This project is released under the GNU General Public License v3.0. See [LICENSE](LICENSE) for details.
+Released under the GNU General Public License v3.0 — see [LICENSE](LICENSE).
+Built with the [Morphe](https://morphe.software) patcher and adapting patch
+ideas from [Piko](https://github.com/crimera/piko); see [NOTICE](NOTICE).
 
-Built with the [Morphe](https://morphe.software) patcher and adapts Instagram
-patch ideas from [Piko](https://github.com/crimera/piko), both GPLv3. See
-[NOTICE](NOTICE) for attribution. Unhooked is an independent project, not
-affiliated with or endorsed by Morphe or Piko.
+*Unhooked is a fork of [Feurstagram](https://github.com/jean-voila/Feurstagram),
+independently maintained and unaffiliated with Instagram or Meta.*
