@@ -46,7 +46,7 @@ All notable changes to Unhooked should be documented in this file.
   and drops the screenshot-taken report so the sender is not notified.
 - **GitLab CI on main.** `.gitlab-ci.yml` runs preflight → build → verify
   → publish on every `main` push: both flavors are built and gated on the
-  patch report plus `.gitlab/expected-patches.txt`, signatures and package
+  patch report plus the per-flavor `.gitlab/expected-patches-*.txt` lists, signatures and package
   identities are verified (with an optional release-cert pin), and a new
   `v<VERSION>` GitLab Release is published with both APKs as assets — which
   is what the in-app updater reads. Re-merges without a version bump just

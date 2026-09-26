@@ -1,0 +1,11 @@
+Clone
+Feed item filtering
+Force SDR display
+Install-packages permission
+Limit feed to following profiles
+Network content blocking
+Popup hiding
+Restart relay
+Screenshot bypass
+Settings entry point
+Signature check bypass

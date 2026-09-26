@@ -70,11 +70,13 @@ build-apks:
     # Clone build (installs alongside stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.xapk" -Pclone --console=plain
     - cp build/patch-report.json patch-report-clone.json
-    # --- gates: nothing failed AND nothing silently missing ---
+    # --- gates: nothing failed AND nothing silently missing (per-flavor
+    # lists: classic ships 10 patches, clone 11; the files carry no comments
+    # so the diff is literal) ---
     - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
     - test "$(jq '.failedPatches | length' patch-report-clone.json)" = "0"
-    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches.txt -
-    - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches.txt -
+    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches-classic.txt -
+    - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches-clone.txt -
     # --- verify: signatures, identities, release-key pin ---
     - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
     - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
