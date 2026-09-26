@@ -9,7 +9,13 @@ gpr.user=<your-github-username>
 gpr.key=<token-with-read:packages>
 ```
 
-Download the pinned Instagram base from this project's Package Registry
+Download the pinned Instagram base (or any version with `-PbaseVersion`):
+
+```bash
+./gradlew fetchBase
+```
+
+Or fetch it directly from this project's Package Registry
 (arm64-v8a, qualified per release):
 
 ```bash

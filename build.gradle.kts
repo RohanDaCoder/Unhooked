@@ -4,7 +4,7 @@
 //   ./gradlew installApk -Papk=<...> -Pclone -Pinstall   (same, plus adb install -r)
 // (-Papk is optional when INPUT_APK is set in .env; the flag wins.)
 //
-// Stages: merge splits (APKEditor) -> build patch bundle (:patches:build) ->
+// Stages: fetch base (optional) -> merge splits (APKEditor) -> build patch bundle (:patches:build) ->
 // apply patches (Morphe CLI) -> sign (apksigner, release keystore only) ->
 // install (adb, -Pinstall only). Output: ./unhooked.apk, receipt: build/patch-report.json.
 //
@@ -134,7 +134,7 @@ val toolJars = listOf(
     ToolJar(
         "morphe-desktop-${libs.versions.morphe.desktop.get()}-all.jar",
         "https://github.com/MorpheApp/morphe-desktop/releases/download/v${libs.versions.morphe.desktop.get()}/morphe-desktop-${libs.versions.morphe.desktop.get()}-all.jar",
-        "82a0df2ff881d83d5ca8b4f9a6ce196bd4ac3b87ff147fe37845c296b436806c",
+        "8cf6a9eab4ee9dab146bddc24681897851564f53116baec11f36ba2fa2f589be",
     ),
 )
 
@@ -226,6 +226,33 @@ fun printPatchReport(report: File) {
     @Suppress("UNCHECKED_CAST")
     (parsed["failedPatches"] as List<Map<String, Any?>>?).orEmpty()
         .forEach { println("    FAIL ${it["name"]}: ${it["exception"] ?: it["error"] ?: ""}") }
+}
+
+// Self-hosted stock base: same default as CI (INPUT_APK_URL). -PbaseVersion=<v>
+// overrides the pin; the file is base-<major>.xapk next to the project.
+val baseProjectId = "86891782"
+val baseVersion = providers.gradleProperty("baseVersion").orElse("446.0.0.49.77")
+
+val fetchBase = tasks.register("fetchBase") {
+    group = "unhooked"
+    description = "Downloads the pinned stock Instagram base from this project's Package Registry (-PbaseVersion=<v> to override)."
+    inputs.property("baseVersion", baseVersion)
+    outputs.file(baseVersion.map { "base-${it.substringBefore('.')}.xapk" })
+    doLast {
+        val v = baseVersion.get()
+        val dest = rootDir.resolve("base-${v.substringBefore('.')}.xapk")
+        if (dest.isFile) {
+            println("    cached: ${dest.name} (${dest.length() / 1024 / 1024} MB)")
+            return@doLast
+        }
+        val url =
+            "https://gitlab.com/api/v4/projects/$baseProjectId/packages/generic/unhooked-base/$v/${dest.name}"
+        println("    fetching: $url")
+        java.net.URI(url).toURL().openStream().use { input ->
+            dest.outputStream().use { input.copyTo(it) }
+        }
+        println("    saved: ${dest.name} (${dest.length() / 1024 / 1024} MB)")
+    }
 }
 
 val mergeSplits = tasks.register<JavaExec>("mergeSplits") {
