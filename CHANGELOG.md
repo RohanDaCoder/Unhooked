@@ -35,6 +35,10 @@ All notable changes to Unhooked should be documented in this file.
   FLAG_SECURE from Instagram's windows so screenshots and screen recordings
   work in view-once media and disappearing DMs, forces recents thumbnails on,
   and drops the screenshot-taken report so the sender is not notified.
+- **GitLab CI on main.** `.gitlab-ci.yml` builds `unhooked-classic.apk` and
+  `unhooked-clone.apk` as job artifacts from the arm64-v8a base APK at
+  `INPUT_APK_URL`, failing the job if any patch fails. See
+  `docs/BUILD_FROM_SOURCE.md` for the required CI variables.
 
 ## v446-0-0-49-77
 
