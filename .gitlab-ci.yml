@@ -19,9 +19,7 @@
 #     the pin with a warning.
 
 stages:
-  - preflight
   - build
-  - verify
   - publish
 
 variables:
@@ -45,44 +43,6 @@ before_script:
   - export PATH="$ANDROID_HOME/build-tools/36.0.0:$ANDROID_HOME/platform-tools:$PATH"
   - chmod +x gradlew
 
-preflight:
-  stage: preflight
-  image: eclipse-temurin:21-jdk-jammy
-  timeout: 10m
-  interruptible: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  script:
-    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
-    - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
-    - curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
-    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
-    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
-    - INNER_APK=$(unzip -l base.xapk | awk '{print $4}' | grep '\.apk$' | head -n1)
-    - test -n "$INNER_APK" || (echo "no APK inside base.xapk" >&2 && exit 1)
-    - unzip -p base.xapk "$INNER_APK" > inner.apk
-    - IG_VERSION=$(aapt dump badging inner.apk | sed -n "s/.*versionName='\([^']*\)'.*/\1/p")
-    - test -n "$IG_VERSION" || (echo "could not read Instagram version" >&2 && exit 1)
-    - VERSION=$(grep '^version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
-    - test -n "$VERSION" || (echo "no version in gradle.properties" >&2 && exit 1)
-    - echo "Unhooked $VERSION on Instagram $IG_VERSION"
-    - |
-      {
-        echo "VERSION=$VERSION"
-        echo "IG_VERSION=$IG_VERSION"
-        if [ "$(curl -s -o /dev/null -w '%{http_code}' "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases/v$VERSION")" = "200" ]; then
-          echo "RELEASE_NEEDED=false"
-        else
-          echo "RELEASE_NEEDED=true"
-        fi
-      } > build.env
-  artifacts:
-    reports:
-      dotenv: build.env
-    paths:
-      - base.xapk
-    expire_in: 1 day
-
 build-apks:
   stage: build
   image: eclipse-temurin:21-jdk-jammy
@@ -90,25 +50,41 @@ build-apks:
   interruptible: true
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
-  needs:
-    - job: preflight
-      artifacts: true
   script:
+    # --- preflight: fail fast on config and inputs, before burning minutes ---
+    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
+    - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
+    - curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
+    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
+    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
     - |
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
       fi
+    # --- flavors ---
     # Classic build (replaces stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.xapk" --console=plain
     - cp build/patch-report.json patch-report-classic.json
     # Clone build (installs alongside stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.xapk" -Pclone --console=plain
     - cp build/patch-report.json patch-report-clone.json
-    # Gates: nothing failed AND nothing silently missing.
+    # --- gates: nothing failed AND nothing silently missing ---
     - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
     - test "$(jq '.failedPatches | length' patch-report-clone.json)" = "0"
     - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches.txt -
     - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches.txt -
+    # --- verify: signatures, identities, release-key pin ---
+    - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
+    - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
+    - test "$(aapt dump badging unhooked-classic.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android"
+    - test "$(aapt dump badging unhooked-clone.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android.unhooked"
+    - |
+      if [ -n "$RELEASE_CERT_SHA256" ]; then
+        grep -qi "$RELEASE_CERT_SHA256" certs-classic.txt || (echo "classic APK not signed with the release key" >&2 && exit 1)
+        grep -qi "$RELEASE_CERT_SHA256" certs-clone.txt || (echo "clone APK not signed with the release key" >&2 && exit 1)
+      else
+        echo "WARNING: RELEASE_CERT_SHA256 unset — cert pin skipped"
+      fi
     - ls -la unhooked-classic.apk unhooked-clone.apk
   artifacts:
     expire_in: 2 weeks
@@ -118,34 +94,6 @@ build-apks:
       - patch-report-classic.json
       - patch-report-clone.json
 
-verify-apks:
-  stage: verify
-  image: eclipse-temurin:21-jdk-jammy
-  timeout: 10m
-  interruptible: true
-  rules:
-    - if: $CI_COMMIT_BRANCH == "main"
-  needs:
-    - job: preflight
-      artifacts: true
-    - job: build-apks
-      artifacts: true
-  script:
-    # Valid signatures (apksigner fails the job otherwise).
-    - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
-    - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
-    # Right package identities, and the flavors actually differ.
-    - test "$(aapt dump badging unhooked-classic.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android"
-    - test "$(aapt dump badging unhooked-clone.apk | grep '^package:' | cut -d\"'\" -f2)" = "com.instagram.android.unhooked"
-    # Release-key pin: a wrong key ships an update nobody can install.
-    - |
-      if [ -n "$RELEASE_CERT_SHA256" ]; then
-        grep -qi "$RELEASE_CERT_SHA256" certs-classic.txt || (echo "classic APK not signed with the release key" >&2 && exit 1)
-        grep -qi "$RELEASE_CERT_SHA256" certs-clone.txt || (echo "clone APK not signed with the release key" >&2 && exit 1)
-      else
-        echo "WARNING: RELEASE_CERT_SHA256 unset — cert pin skipped"
-      fi
-
 publish-release:
   stage: publish
   image: eclipse-temurin:21-jdk-jammy
@@ -154,13 +102,17 @@ publish-release:
   rules:
     - if: $CI_COMMIT_BRANCH == "main"
   needs:
-    - job: preflight
-      artifacts: true
     - job: build-apks
       artifacts: true
-    - job: verify-apks
   script:
-    - test "$RELEASE_NEEDED" = "true" || (echo "Release v$VERSION already exists — build verified only." && exit 0)
+    - VERSION=$(grep '^version *=' gradle.properties | cut -d= -f2 | tr -d ' ')
+    - IG_VERSION=$(aapt dump badging unhooked-classic.apk | grep -o "versionName='[^']*'" | cut -d"'" -f2)
+    - test -n "$VERSION" || (echo "no version in gradle.properties" >&2 && exit 1)
+    - |
+      if [ "$(curl -s -o /dev/null -w '%{http_code}' "$CI_API_V4_URL/projects/$CI_PROJECT_ID/releases/v$VERSION")" = "200" ]; then
+        echo "Release v$VERSION already exists — build verified only."
+        exit 0
+      fi
     - test -n "$UNHOOKED_KEYSTORE_PASS" || (echo "refusing to publish without the release key" >&2 && exit 1)
     - test -n "$GITLAB_API_TOKEN" || (echo "refusing to publish without GITLAB_API_TOKEN" >&2 && exit 1)
     - PKG="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/unhooked/v$VERSION"
