@@ -10,7 +10,8 @@
 #   GITLAB_API_TOKEN  Project access token with api scope, masked. Creates the
 #                     release (JOB-TOKEN cannot mint tags).
 # Optional:
-#   INPUT_APK_URL   Stock Instagram bundle to patch (default: APKPure xapk below).
+#   INPUT_APK_URL   Stock Instagram bundle to patch (default: self-hosted base
+#     in this project's Package Registry, below).
 #   UNHOOKED_KEYSTORE_B64   base64 of the release keystore (plain Variable holding
 #     the base64 text — the job decodes it; NOT a File variable).
 #   UNHOOKED_KEYSTORE_PASS / UNHOOKED_KEY_ALIAS — release signing. Publish
@@ -26,7 +27,7 @@ stages:
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
   ANDROID_HOME: "$CI_PROJECT_DIR/android-sdk"
-  INPUT_APK_URL: "https://d.apkpure.com/b/XAPK/com.instagram.android?versionCode=385311854"
+  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/446.0.0.49.77/base-446.xapk"
 
 cache:
   key: unhooked-main
@@ -55,7 +56,8 @@ build-apks:
     # --- preflight: fail fast on config and inputs, before burning minutes ---
     - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
     - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
-    # APKPure hotlink-protects the download: a browser UA + referer is required.
+    # Browser UA + referer kept for mirror-URL overrides (the default Package
+    # Registry URL needs no special headers).
     - curl -sSL --retry 3 --fail -A 'Mozilla/5.0 (Linux; Android 14; Pixel 7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/120.0 Mobile Safari/537.36' -e 'https://apkpure.com/' -o base.xapk "$INPUT_APK_URL"
     - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
     - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
