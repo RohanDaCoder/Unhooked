@@ -1,12 +1,25 @@
 # Build outputs
 *.apk
 *.apkm
+*.apks
+*.xapk
 *.idsig
 *.mpe
 *.mpp
 
 # Local tooling (Morphe CLI is downloaded locally)
 tools/
+
+# Local handsets / bases / outputs (never committed; keep the root clean)
+local/
+
+# Stale top-level merge dir (pipeline uses build/merged/)
+merged/
+
+# Python venv / worktrees / agent state
+.venv/
+.worktrees/
+.superpowers/
 
 # Local signing material
 *.keystore
