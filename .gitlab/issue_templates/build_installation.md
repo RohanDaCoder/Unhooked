@@ -12,7 +12,7 @@ Use this template for `buildApk` failures, APK installation problems, clone/clas
 ## Environment
 
 - **Unhooked version or commit:** <!-- e.g. v446-0-0-49-77 or commit hash -->
-- **Instagram APK details:** <!-- version, source, minAPI, DPI, architecture — e.g. 446.0.0.49.77, APKMirror, minAPI 28, arm64-v8a, nodpi -->
+- **Instagram APK details:** <!-- version, source, minAPI, DPI, architecture — e.g. 446.0.0.49.77, Package Registry base, minAPI 28, arm64-v8a, nodpi -->
 - **Computer OS:** <!-- e.g. Windows 11, Ubuntu 24.04 -->
 - **Android device and version:** <!-- e.g. Pixel 7, Android 14 -->
 - **APK type:** <!-- classic / clone / built from source / not sure -->

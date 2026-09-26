@@ -12,7 +12,10 @@ you inspect the patches and avoid trusting a prebuilt APK.
   gpr.user=<your-github-username>
   gpr.key=<token-with-read:packages>
   ```
-- A supported Instagram APK (arm64-v8a from a trusted source such as APKMirror)
+- A supported Instagram APK: the pinned base from this project's Package
+  Registry (`unhooked-base`), fetched with
+  `glab packages download --name unhooked-base --version <ig-version>
+  --filename base-<ig-version>.xapk`
 
 ## Steps
 

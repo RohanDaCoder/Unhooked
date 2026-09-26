@@ -225,7 +225,11 @@ If you open the page and change nothing, Back simply closes it.
 
 ## Build from source
 
-1. **Download an Instagram APK** from [APKMirror](https://www.apkmirror.com/apk/instagram/instagram-instagram/) (arm64-v8a recommended).
+1. **Download the pinned Instagram base** from this project's Package Registry
+   (arm64-v8a, qualified per release):
+   ```bash
+   glab packages download --name unhooked-base --version 446.0.0.49.77 --filename base-446.xapk
+   ```
 
 2. **Build and apply:**
    ```bash
