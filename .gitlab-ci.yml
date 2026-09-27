@@ -169,7 +169,7 @@ publish-release:
       fi
     # New release: the CHANGELOG section is the release notes (rendered in the
     # update prompt), so a version bump without one fails here, not silently.
-    - test -n "$(echo "$NOTES" | tr -d '[:space:]')" || (echo "No CHANGELOG.md section for ## $VERSION — cut the release notes before merging" >&2 && exit 1)
+    - 'test -n "$(echo "$NOTES" | tr -d ''[:space:]'')" || (echo "No CHANGELOG.md section for ## $VERSION — cut the release notes before merging" >&2 && exit 1)'
     - test -n "$UNHOOKED_KEYSTORE_PASS" || (echo "refusing to publish without the release key" >&2 && exit 1)
     - test -n "$GITLAB_API_TOKEN" || (echo "refusing to publish without GITLAB_API_TOKEN" >&2 && exit 1)
     - PKG="$CI_API_V4_URL/projects/$CI_PROJECT_ID/packages/generic/unhooked/v$VERSION"
