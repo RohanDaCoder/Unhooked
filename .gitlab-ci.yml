@@ -51,6 +51,28 @@ before_script:
   - export PATH="$ANDROID_HOME/build-tools/36.0.0:$ANDROID_HOME/platform-tools:$PATH"
   - chmod +x gradlew
 
+# Base is downloaded once and fanned out via `needs` artifacts — flavors
+# must not download it themselves (parallel runners each paid a full
+# download before). Always a fresh download: the base is immutable at its
+# registry path, and the size/zip gates below catch error pages.
+fetch-base:
+  stage: build
+  image: eclipse-temurin:21-jdk-jammy
+  timeout: 15m
+  interruptible: true
+  rules:
+    - if: $CI_COMMIT_BRANCH == "main"
+  script:
+    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
+    - curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
+    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
+    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
+    - ls -la base.xapk
+  artifacts:
+    expire_in: 1 day
+    paths:
+      - base.xapk
+
 # Flavors build in parallel (separate runners); publish fans in on both.
 .flavor-build:
   stage: build
@@ -62,21 +84,12 @@ before_script:
 
 build-classic:
   extends: .flavor-build
+  needs:
+    - job: fetch-base
+      artifacts: true
   script:
     # --- preflight: fail fast on config and inputs, before burning minutes ---
-    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
     - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
-    # base.xapk is cached across runs (immutable at its registry path); the
-    # size/zip checks below still run every time and take seconds. The .url
-    # sidecar forces a re-download when INPUT_APK_URL changes, so a new base
-    # can never silently reuse a stale cached file.
-    - |
-      if [ ! -f base.xapk ] || [ "$(cat base.url 2>/dev/null)" != "$INPUT_APK_URL" ]; then
-        curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
-        echo "$INPUT_APK_URL" > base.url
-      fi
-    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
-    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
     - |
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
@@ -101,17 +114,12 @@ build-classic:
 
 build-clone:
   extends: .flavor-build
+  needs:
+    - job: fetch-base
+      artifacts: true
   script:
-    # --- preflight: same as classic (each flavor is self-sufficient) ---
-    - test -n "$INPUT_APK_URL" || (echo "INPUT_APK_URL is not set" >&2 && exit 1)
+    # --- preflight: base arrives via needs: fetch-base ---
     - test -n "$GITHUB_TOKEN" || (echo "GITHUB_TOKEN is not set" >&2 && exit 1)
-    - |
-      if [ ! -f base.xapk ] || [ "$(cat base.url 2>/dev/null)" != "$INPUT_APK_URL" ]; then
-        curl -sSL --retry 3 --fail -o base.xapk "$INPUT_APK_URL"
-        echo "$INPUT_APK_URL" > base.url
-      fi
-    - test "$(stat -c%s base.xapk)" -gt 100000000 || (echo "base.xapk suspiciously small — probably an error page" >&2 && exit 1)
-    - unzip -l base.xapk > /dev/null || (echo "base.xapk is not a valid archive" >&2 && exit 1)
     - |
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
