@@ -26,7 +26,7 @@ stages:
 
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
-  ANDROID_HOME: "$CI_PROJECT_DIR/android-sdk"
+  ANDROID_HOME: "/opt/android-sdk"
   INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/446.0.0.49.77/base-446.xapk"
 
 cache:
@@ -34,21 +34,13 @@ cache:
   paths:
     - .gradle/caches/
     - .gradle/wrapper/
-    - android-sdk/
     - tools/
-    - base.xapk
-    - base.url
 
+# JDK 21 + Android SDK are baked into the job image
+# (.gitlab/ci-image/Dockerfile, registry tag encodes the pins), so setup is
+# just PATH + a runnable gradlew.
 before_script:
-  - apt-get update -y -qq && apt-get install -y -qq curl unzip jq > /dev/null
-  - |
-    [ -x "$HOME/.local/bin/android" ] || \
-      curl -fsSL https://dl.google.com/android/cli/latest/linux_x86_64/install.sh | bash
-  - export PATH="$HOME/.local/bin:$PATH"
-  - |
-    [ -d "$ANDROID_HOME/build-tools/36.0.0" ] || \
-      android --sdk="$ANDROID_HOME" sdk install 'platforms;android-35' 'platforms;android-36' 'build-tools;36.0.0' platform-tools
-  - export PATH="$ANDROID_HOME/build-tools/36.0.0:$ANDROID_HOME/platform-tools:$PATH"
+  - export PATH="/opt/android-sdk/build-tools/36.0.0:/opt/android-sdk/platform-tools:$HOME/.local/bin:$PATH"
   - chmod +x gradlew
 
 # Base is downloaded once and fanned out via `needs` artifacts — flavors
@@ -57,7 +49,7 @@ before_script:
 # registry path, and the size/zip gates below catch error pages.
 fetch-base:
   stage: build
-  image: eclipse-temurin:21-jdk-jammy
+  image: registry.gitlab.com/rohandacoder/unhooked/ci:jdk21-sdk36.0.0-v1
   timeout: 15m
   interruptible: true
   rules:
@@ -76,7 +68,7 @@ fetch-base:
 # Flavors build in parallel (separate runners); publish fans in on both.
 .flavor-build:
   stage: build
-  image: eclipse-temurin:21-jdk-jammy
+  image: registry.gitlab.com/rohandacoder/unhooked/ci:jdk21-sdk36.0.0-v1
   timeout: 45m
   interruptible: true
   rules:
@@ -145,7 +137,7 @@ build-clone:
 
 publish-release:
   stage: publish
-  image: eclipse-temurin:21-jdk-jammy
+  image: registry.gitlab.com/rohandacoder/unhooked/ci:jdk21-sdk36.0.0-v1
   timeout: 10m
   interruptible: false
   rules:
