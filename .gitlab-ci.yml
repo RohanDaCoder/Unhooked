@@ -107,6 +107,7 @@ build-classic:
     - ls -la unhooked-classic.apk
   artifacts:
     expire_in: 2 weeks
+    when: always
     paths:
       - unhooked-classic.apk
       - patch-report-classic.json
@@ -136,6 +137,7 @@ build-clone:
     - ls -la unhooked-clone.apk
   artifacts:
     expire_in: 2 weeks
+    when: always
     paths:
       - unhooked-clone.apk
       - patch-report-clone.json
@@ -155,3 +157,8 @@ publish-release:
       artifacts: true
   script:
     - bash scripts/publish-release.sh
+  artifacts:
+    expire_in: 2 weeks
+    when: always
+    paths:
+      - release.json
