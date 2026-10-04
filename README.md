@@ -50,11 +50,14 @@ APK covers every combination.
 | **Following feed only**            | Off     | Yes        | Feed-request header rewrite         |
 | **Explore**                        | Blocked | Yes        | Network-level blocking              |
 | **Reels**                          | Blocked | Yes        | Network-level blocking + Tab hidden |
+| **Friends row in Reels**           | Blocked | Yes        | View visibility hidden              |
 | **Stories**                        | Visible | Yes        | Network-level blocking              |
 | **Suggested accounts**             | Blocked | Yes        | Network-level + feed-parse blocking |
 | **Instants (+ button in DMs)**     | Blocked | Yes        | View visibility hidden              |
 | **Notes (text bubbles above DMs)** | Blocked | Yes        | View visibility hidden              |
 | **Ads**                            | Blocked | Yes        | Network-level + feed-parse blocking |
+| **Heart button (notifications)**    | Visible | Yes        | View visibility hidden              |
+| **Instagram popups**               | Hidden  | Yes        | Popup suppression                   |
 | **Analytics & telemetry**          | Blocked | No         | Always blocked                      |
 | **Shopping / commerce preloads**   | Blocked | No         | Always blocked                      |
 

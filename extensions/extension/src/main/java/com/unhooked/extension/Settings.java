@@ -426,13 +426,13 @@ public final class Settings {
         addRow(context, surfaces, "Home feed", "block_feed", Config.isFeedBlocked());
         addRow(context, surfaces, "Explore", "block_explore", Config.isExploreBlocked());
         addRow(context, surfaces, "Reels", "block_reels", Config.isReelsBlocked());
-        addRow(context, surfaces, "Friends in Reels", "block_friends_lane", Config.isFriendsLaneBlocked());
+        addRow(context, surfaces, "Friends row in Reels", "block_friends_lane", Config.isFriendsLaneBlocked());
         addRow(context, surfaces, "Stories", "block_stories", Config.isStoriesBlocked());
         addRow(context, surfaces, "Instants", "block_instants", Config.isInstantsBlocked());
         addRow(context, surfaces, "Notes", "block_notes", Config.isNotesBlocked());
         addRow(context, surfaces, "Suggested accounts", "block_suggested", Config.isSuggestedBlocked());
         addRow(context, surfaces, "Ads", "block_ads", Config.isAdsBlocked());
-        addRow(context, surfaces, "Notifications button", "block_notifications",
+        addRow(context, surfaces, "Heart button", "block_notifications",
                 Config.isNotificationsButtonBlocked());
         sealGroup(context, surfaces);
 
@@ -460,7 +460,7 @@ public final class Settings {
         sealGroup(context, popups);
 
         LinearLayout display = addSection(context, column, "Display");
-        addRow(context, display, "Force dark (disable HDR)", "force_sdr", Config.isForceSdr());
+        addRow(context, display, "Force dark", "force_sdr", Config.isForceSdr());
         sealGroup(context, display);
 
         LinearLayout privacy = addSection(context, column, "Privacy");
@@ -772,17 +772,57 @@ public final class Settings {
         });
     }
 
+    /**
+     * The line under a row's label: what turning this on actually does to the app,
+     * said in plain words. Every key gets its own line — there is deliberately no
+     * generic fallback, so a toggle somebody adds and forgets to describe renders
+     * with no second line instead of quietly inheriting a vague one.
+     */
     private static String supportText(String key) {
-        if (key.equals("auto_update")) return "Check GitLab for a new version on launch.";
-        if (key.equals("block_ads")) return "Block sponsored ads across Instagram.";
-        if (key.equals("limit_following_feed")) return "Show only accounts you follow (needs the feed unblocked).";
-        if (key.equals("hide_toasts")) return "Hide every Instagram popup, including “couldn’t refresh feed”.";
-        if (key.equals("force_sdr")) return "Keep blacks deep by stopping Instagram forcing HDR on the UI.";
-        if (key.equals("allow_screenshots")) return "Screenshot view-once media and DMs; the sender is not notified.";
-        if (key.equals("block_friends_lane")) return "Hide the Friends tab and its avatars in the Reels header.";
-        if (key.equals("block_notifications")) return "Hide the notifications (heart) button in the feed header.";
-        if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
-        return "Hide this surface in Instagram.";
+        switch (key) {
+            case "block_feed":
+                return "Nothing loads in the Home tab. The tab itself stays.";
+            case "block_explore":
+                return "Nothing loads in the Explore tab.";
+            case "block_reels":
+                return "Nothing loads in Reels. To take the Reels icon off the bottom bar as well, use Navigation bar.";
+            case "block_stories":
+                return "Nothing loads in Stories. Ones you've already opened stay until you restart.";
+            case "block_suggested":
+                return "Hide the accounts Instagram suggests to you.";
+            case "block_ads":
+                return "Hide sponsored posts, including the ones that appear in the feed itself.";
+            case "block_friends_lane":
+                return "Hide the row of friend avatars at the top of a reel.";
+            case "block_instants":
+                return "Hide the + button and the quick-snap preview in direct messages.";
+            case "block_notes":
+                return "Hide the notes bar above your direct messages.";
+            case "block_notifications":
+                return "Hide the heart button at the top of the feed.";
+            case "limit_following_feed":
+                return "Show only posts from accounts you follow, in order. Turn off Home feed first.";
+            case "hide_toasts":
+                return "Hide Instagram's popups, like “couldn't refresh feed”.";
+            case "force_sdr":
+                return "Stop Instagram turning on HDR, which makes the dark UI look washed out.";
+            case "allow_screenshots":
+                return "Let you screenshot view-once photos and disappearing messages.";
+            case "auto_update":
+                return "Check for new Unhooked versions when you open the app.";
+            case "nav_show_search":
+                return "Show the search icon in the bottom bar.";
+            case "nav_show_reels":
+                return "Show the Reels icon in the bottom bar.";
+            case "nav_show_create":
+                return "Show the create icon in the bottom bar.";
+            case "nav_show_direct":
+                return "Show the messages icon in the bottom bar.";
+            case "nav_show_profile":
+                return "Show the profile icon in the bottom bar.";
+            default:
+                return null;
+        }
     }
 
     // --- Landing page picker --------------------------------------------------

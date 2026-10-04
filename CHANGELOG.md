@@ -5,6 +5,31 @@ Entries under Unreleased ship with the next version bump.
 
 ## Unreleased
 
+### Changed
+
+- **Every settings toggle now says what it does.** The descriptions under the
+  toggles were rewritten in plain words, and each one is specific to its own
+  switch: seven of the ten "Blocked surfaces" rows shared a single line reading
+  "Hide this surface in Instagram." The navigation-bar rows each name their own
+  icon. Descriptions now state what you will actually see — that the Home tab
+  stays but loads nothing, that hiding the Reels *icon* is a separate setting
+  under Navigation bar, that Stories you already opened survive until a restart
+  — instead of how the patch works internally. "Force dark" drops the
+  "(disable HDR)" suffix, "Friends in Reels" is now "Friends row in Reels", and
+  "Notifications button" is now "Heart button".
+
+### Fixed
+
+- **A toggle with no description now shows none, instead of a vague one.** The
+  generic catch-all line is gone, so a switch added later without a description
+  of its own renders with only its label rather than silently claiming to hide
+  something unspecified.
+
+### Docs
+
+- The feature table documents the **Friends row in Reels**, **Heart button** and
+  **Instagram popups** toggles, which shipped without ever being listed.
+
 ## 1.0.3
 
 ### Added
