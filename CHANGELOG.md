@@ -6,6 +6,19 @@ All notable changes to Feurstagram should be documented in this file.
 
 Nothing yet.
 
+## v450-0-0-50-77
+
+### Changed
+- **New official Instagram account.** Feurstagram moved to a new account,
+  [@feurstagram_off](https://www.instagram.com/feurstagram_off/). The card shown after an
+  install or update now introduces it as the new account, and *Follow* opens it. The card
+  runs once per update, so users who already dismissed it for the old account see it again
+  with this release.
+- The README and the website (home page, French home page, press kits, Instagram without
+  Reels pages and structured data) link to the new account.
+- Updated to Instagram 450.0.0.50.77. The guides that name the Instagram version they were
+  checked against now name 450.0.0.50.77.
+
 ## v446-0-0-49-77
 
 ### Added
