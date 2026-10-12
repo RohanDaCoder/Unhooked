@@ -88,14 +88,14 @@ public final class FollowPrompt {
             LinearLayout card = Settings.addCard(context, frame);
 
             TextView title = new TextView(context);
-            title.setText("New official account");
+            title.setText("Official account");
             Settings.titleLarge(title);
             card.addView(title);
 
             ScrollView bodyScroll = new ScrollView(context);
             bodyScroll.setVerticalScrollBarEnabled(false);
             TextView body = new TextView(context);
-            body.setText("Feurstagram has a new Instagram account: @feurstagram_off. "
+            body.setText("@feurstagram_off is Feurstagram's official Instagram account. "
                     + "Follow it to get a story every time a new version is out: new features, "
                     + "fixes and Instagram updates.");
             Settings.body(body);

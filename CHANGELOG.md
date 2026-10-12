@@ -6,6 +6,27 @@ All notable changes to Feurstagram should be documented in this file.
 
 Nothing yet.
 
+## v451-0-0-20-80
+
+### Fixed
+- **Sponsored posts are removed from the feed.** Instagram now sends its in-feed ads,
+  "Sponsored" posts and "ad break" posts alike, inside the timeline response itself,
+  wrapped in the same `media_or_ad` unit as a regular post, then injects them client-side
+  between the posts. No ad URL to block and no ad unit type to drop, so the Ads toggle
+  let them all through (about one post in two on a test account). The media parser now
+  reports each post's JSON fields, and a post carrying an ad-only field (`injected`,
+  `dr_ad_type`) is dropped before it reaches the feed. Regular posts, including paid
+  partnerships, are untouched. Gated on the Ads toggle.
+- **Network blocking applies again on Instagram 451.** Instagram 451 turned
+  `TigonServiceLayer.startRequest` into a tracing wrapper around a new
+  `startRequestInternal`, so the network hook no longer found the request URI and the patch
+  failed to apply, which would have let the feed, stories, explore, reels, ads and
+  telemetry back in. The hook now targets whichever `startRequest*` method reads the URI.
+
+### Changed
+- Updated to Instagram 451.0.0.20.80. The guides that name the Instagram version they were
+  checked against now name 451.0.0.20.80.
+
 ## v450-0-0-50-77
 
 ### Changed
