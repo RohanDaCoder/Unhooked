@@ -231,16 +231,16 @@ fun printPatchReport(report: File) {
 // Self-hosted stock base: same default as CI (INPUT_APK_URL). -PbaseVersion=<v>
 // overrides the pin; the file is base-<major>.xapk next to the project.
 val baseProjectId = "86891782"
-val baseVersion = providers.gradleProperty("baseVersion").orElse("446.0.0.49.77")
+val baseVersion = providers.gradleProperty("baseVersion").orElse("454.0.0.13.77")
 
 val fetchBase = tasks.register("fetchBase") {
     group = "unhooked"
     description = "Downloads the pinned stock Instagram base from this project's Package Registry (-PbaseVersion=<v> to override)."
     inputs.property("baseVersion", baseVersion)
-    outputs.file(baseVersion.map { "base-${it.substringBefore('.')}.xapk" })
+    outputs.file(baseVersion.map { "base-${it.substringBefore('.')}.apkm" })
     doLast {
         val v = baseVersion.get()
-        val dest = rootDir.resolve("base-${v.substringBefore('.')}.xapk")
+        val dest = rootDir.resolve("base-${v.substringBefore('.')}.apkm")
         if (dest.isFile) {
             println("    cached: ${dest.name} (${dest.length() / 1024 / 1024} MB)")
             return@doLast

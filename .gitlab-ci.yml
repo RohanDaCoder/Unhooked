@@ -27,7 +27,7 @@ stages:
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
   ANDROID_HOME: "/opt/android-sdk"
-  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/446.0.0.49.77/base-446.xapk"
+  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/454.0.0.13.77/base-454.apkm"
 
 cache:
   key: unhooked-main
@@ -89,10 +89,10 @@ build-classic:
     # Classic build (replaces stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.xapk" --console=plain
     - cp build/patch-report.json patch-report-classic.json
-    # --- gates: nothing failed AND nothing silently missing (10 patches,
+    # --- gates: nothing failed AND nothing silently missing (14 patches,
     # comment-free list so the diff is literal) ---
     - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
-    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches-classic.txt -
+    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches.txt -
     # --- verify: signature + identity ---
     - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
     - test "$(aapt dump badging unhooked-classic.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android"
@@ -120,9 +120,13 @@ build-clone:
     # Clone build (installs alongside stock Instagram).
     - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.xapk" -Pclone --console=plain
     - cp build/patch-report.json patch-report-clone.json
-    # --- gates: nothing failed AND nothing silently missing (11 patches) ---
+    # --- gates: nothing failed AND nothing silently missing (14 patches +
+    # the Clone patch itself; same list as classic plus "Clone") ---
     - test "$(jq '.failedPatches | length' patch-report-clone.json)" = "0"
-    - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches-clone.txt -
+    - cat .gitlab/expected-patches.txt > expected-clone.txt
+    - echo "Clone" >> expected-clone.txt
+    - sort expected-clone.txt -o expected-clone.txt
+    - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff expected-clone.txt -
     # --- verify: signature + identity ---
     - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
     - test "$(aapt dump badging unhooked-clone.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android.unhooked"

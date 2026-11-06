@@ -1,10 +1,14 @@
 Feed item filtering
 Force SDR display
+Hidden Home in Back history
 Install-packages permission
 Limit feed to following profiles
 Network content blocking
 Popup hiding
+Quoicouview assets
+Quoicouview mode
 Restart relay
 Screenshot bypass
 Settings entry point
 Signature check bypass
+Suggested accounts in the story tray

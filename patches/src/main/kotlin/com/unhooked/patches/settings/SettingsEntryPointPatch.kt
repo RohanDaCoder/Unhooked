@@ -9,6 +9,7 @@ import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
 import com.android.tools.smali.dexlib2.iface.reference.MethodReference
+import com.unhooked.patches.quoicouview.quoicouviewAssetsPatch
 import com.unhooked.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.unhooked.patches.shared.Constants.EXTENSION
 
@@ -65,6 +66,9 @@ val settingsEntryPointPatch = bytecodePatch(
     compatibleWith(COMPATIBILITY_INSTAGRAM)
 
     extendWith(EXTENSION)
+
+    // The card presenting Quoicouview mode, shown from this entry point, needs its screenshot.
+    dependsOn(quoicouviewAssetsPatch)
 
     execute {
         TabBarBinderFingerprint.method.apply {

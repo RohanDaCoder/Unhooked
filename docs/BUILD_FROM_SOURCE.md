@@ -12,10 +12,20 @@ you inspect the patches and avoid trusting a prebuilt APK.
   gpr.user=<your-github-username>
   gpr.key=<token-with-read:packages>
   ```
-- A supported Instagram APK: the pinned base from this project's Package
-  Registry (`unhooked-base`), fetched with
-  `glab packages download --name unhooked-base --version <ig-version>
---filename base-<ig-version>.xapk`
+- The stock Instagram base the release pins (an `.apkm` split bundle,
+  arm64-v8a). Two ways to get it:
+
+  ```sh
+  # easiest: downloads the pinned version from this project's Package Registry
+  ./gradlew fetchBase                       # -PbaseVersion=<version> to override
+
+  # or directly with glab
+  glab packages download --name unhooked-base --version 454.0.0.13.77 \
+      --filename base-454.apkm
+  ```
+
+  Any other Instagram APK or split bundle (`.apk`, `.apkm`, `.xapk`, `.apks`)
+  works too — bundle formats are routed by file extension.
 
 ## Steps
 
@@ -26,17 +36,17 @@ you inspect the patches and avoid trusting a prebuilt APK.
    cd Unhooked
    ```
 
-2. Build and apply the patches to your Instagram APK.
+2. Build and apply the patches to the base.
 
    ```sh
-   ./gradlew buildApk "-Papk=instagram.apk"
+   ./gradlew buildApk "-Papk=base-454.apkm"
    ```
 
    Add `-Pclone` to install alongside a stock Instagram, and run `installApk`
    with `-Pinstall` to push to a connected device:
 
    ```sh
-   ./gradlew installApk "-Papk=instagram.apk" -Pclone -Pinstall
+   ./gradlew installApk "-Papk=base-454.apkm" -Pclone -Pinstall
    ```
 
 3. Install the signed result (if you did not run `installApk -Pinstall`).
@@ -45,6 +55,27 @@ you inspect the patches and avoid trusting a prebuilt APK.
    ```
    Set `INPUT_APK` in a local `.env` file (see `.env.example`) to skip
    `-Papk` entirely.
+
+## Verifying the result
+
+`./gradlew buildApk` prints the patch report and writes it to
+`build/patch-report.json`. Check that everything is under `appliedPatches`,
+that `failedPatches` is empty, and that the applied names match
+`.gitlab/expected-patches.txt` (the clone flavor applies the same list plus
+the `Clone` patch). A `BUILD SUCCESSFUL` line alone says nothing about whether
+patches actually applied.
+
+On device, blocked requests surface as `java.io.IOException: Blocked by
+Unhooked` in logcat:
+
+```sh
+adb logcat | grep "Blocked by Unhooked"
+```
+
+For endpoint research — e.g. a block that applies cleanly but never fires —
+build with `-Pdebug` and use the Debug bridge's TRACE command; see
+[ARCHITECTURE.md](ARCHITECTURE.md#debug-bridge). Debug builds are for
+development only and must not be distributed.
 
 ## Signing
 
@@ -61,11 +92,11 @@ has three jobs: `build-classic` + `build-clone` in parallel, then
 
 Each build job starts with preflight (validates the stock bundle and the
 required variables, failing fast), builds its flavor APK, then gates on
-`failedPatches == []` **and** a diff of the applied list against its
-per-flavor `.gitlab/expected-patches-*.txt` list — a silently missing
-patch fails the job. It finishes by verifying the signature and asserting
-the package identity (`com.instagram.android` vs
-`com.instagram.android.unhooked`).
+`failedPatches == []` **and** a diff of the applied list against
+`.gitlab/expected-patches.txt` (the clone job expects the same list plus
+`Clone`) — a silently missing patch fails the job. It finishes by verifying
+the signature and asserting the package identity
+(`com.instagram.android` vs `com.instagram.android.unhooked`).
 
 `publish-release` runs only when no `v<VERSION>` release exists yet
 (re-merges without a bump just build). It first pins both APKs to the release
@@ -81,9 +112,9 @@ Configure these CI/CD variables (Settings → CI/CD → Variables):
   release; `JOB-TOKEN` cannot mint tags).
 - `INPUT_APK_URL` — stock Instagram bundle (defaults in-YAML to the
   self-hosted base in this project's Package Registry,
-  `unhooked-base/<ig-version>/base-<ig-version>.xapk`; to qualify a new base,
-  upload it there with `glab packages upload <file> --name unhooked-base
---version <ig-version>` and update the default).
+  `unhooked-base/<ig-version>/base-<major>.apkm`; to qualify a new base,
+  upload it there with `glab packages upload base-<major>.apkm --name
+  unhooked-base --version <ig-version>` and update the default).
 - Release signing: `UNHOOKED_KEYSTORE_B64` (plain variable with the base64
   keystore text), `UNHOOKED_KEYSTORE_PASS`, `UNHOOKED_KEY_ALIAS`.
 - `RELEASE_CERT_SHA256` — expected cert fingerprint from
@@ -93,5 +124,6 @@ Configure these CI/CD variables (Settings → CI/CD → Variables):
 
 - Only use APKs from trusted sources.
 - Patches are fingerprint-based, so a new Instagram version usually only needs a
-  rebuild.
+  rebuild; the release flow for migrating to a new base is documented in
+  [AGENTS.md](../AGENTS.md).
 - If the build fails, check open issues or create a bug report.
