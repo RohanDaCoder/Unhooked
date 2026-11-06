@@ -23,6 +23,14 @@ val cloneEnabled = providers.gradleProperty("clone").isPresent
 val debugEnabled = providers.gradleProperty("debug").isPresent
 val installEnabled = providers.gradleProperty("install").isPresent
 
+// Opt-in patches, driven by the -Pclone / -Pdebug flags. Single source of
+// truth: both the -e arguments the Morphe CLI receives below and the
+// checkPatches gate's expectations read this one list.
+val optInPatches = buildList {
+    if (cloneEnabled) add("Clone")
+    if (debugEnabled) add("Debug bridge")
+}
+
 // .env support: KEY=VALUE lines, '#' comments, optional single/double quotes.
 // The file is optional and never committed (see .gitignore); real environment
 // variables take precedence over .env entries.
@@ -231,16 +239,16 @@ fun printPatchReport(report: File) {
 // Self-hosted stock base: same default as CI (INPUT_APK_URL). -PbaseVersion=<v>
 // overrides the pin; the file is base-<major>.xapk next to the project.
 val baseProjectId = "86891782"
-val baseVersion = providers.gradleProperty("baseVersion").orElse("446.0.0.49.77")
+val baseVersion = providers.gradleProperty("baseVersion").orElse("454.0.0.13.77")
 
 val fetchBase = tasks.register("fetchBase") {
     group = "unhooked"
     description = "Downloads the pinned stock Instagram base from this project's Package Registry (-PbaseVersion=<v> to override)."
     inputs.property("baseVersion", baseVersion)
-    outputs.file(baseVersion.map { "base-${it.substringBefore('.')}.xapk" })
+    outputs.file(baseVersion.map { "base-${it.substringBefore('.')}.apkm" })
     doLast {
         val v = baseVersion.get()
-        val dest = rootDir.resolve("base-${v.substringBefore('.')}.xapk")
+        val dest = rootDir.resolve("base-${v.substringBefore('.')}.apkm")
         if (dest.isFile) {
             println("    cached: ${dest.name} (${dest.length() / 1024 / 1024} MB)")
             return@doLast
@@ -318,8 +326,7 @@ val patchApk = tasks.register<JavaExec>("patchApk") {
             "patch", "-p", newestMpp().absolutePath, "-f",
             "-r", report.absolutePath, "-o", out.absolutePath,
         )
-        if (cloneEnabled) patchArgs.addAll(listOf("-e", "Clone"))
-        if (debugEnabled) patchArgs.addAll(listOf("-e", "Debug bridge"))
+        for (patch in optInPatches) patchArgs.addAll(listOf("-e", patch))
         if (keystorePass.isNotEmpty()) patchArgs.add("--unsigned")
         patchArgs.add(effective.absolutePath)
         args(patchArgs)
@@ -331,6 +338,88 @@ val patchApk = tasks.register<JavaExec>("patchApk") {
         }
     }
 }
+
+// The patch gate: derives the expected patch set live from the bundle the
+// build just produced — `morphe list-patches` on the .mpp, whose declarations
+// in patches/src are the single source of truth — plus the opt-ins the flags
+// enabled, then fails the build on any failed, missing or unexpected patch.
+// There is deliberately no committed expected-list to keep in sync. Run it
+// standalone to re-gate an existing build/patch-report.json (pass the flags
+// the report was built with).
+val checkPatches = tasks.register("checkPatches") {
+    group = "unhooked"
+    description = "Gates build/patch-report.json against the bundle's declared defaults plus flag-enabled opt-ins."
+    inputs.property("clone", cloneEnabled)
+    inputs.property("debug", debugEnabled)
+    inputs.files(fileTree("patches/build/libs") {
+        include("patches-*[0-9].mpp")
+        exclude("*-sources*", "*-javadoc*")
+    })
+    inputs.files(fileTree("tools") { include("morphe-*.jar") })
+    doLast {
+        val report = layout.buildDirectory.file("patch-report.json").get().asFile
+        if (!report.isFile) throw GradleException("No build/patch-report.json — run patchApk first.")
+
+        // Expected: what the bundle declares as default-on, plus the opt-ins.
+        val cli = newestJar("tools", "morphe-desktop-", "morphe-cli-")
+            ?: throw GradleException("Morphe CLI not found under tools/ (morphe-cli-*.jar / morphe-desktop-*.jar).")
+        val listFile = layout.buildDirectory.file("patch-list.txt").get().asFile
+        listFile.parentFile.mkdirs()
+        if (listFile.exists()) listFile.delete()
+        val proc = ProcessBuilder(
+            listOf(
+                "${System.getProperty("java.home")}/bin/java",
+                "-jar", cli.absolutePath,
+                "list-patches", "--patches", newestMpp().absolutePath,
+                "-d=false", "-i=false", "-v=false",
+                "--out=${listFile.absolutePath}",
+            )
+        ).redirectErrorStream(true).start()
+        val cliOut = proc.inputStream.bufferedReader().readText()
+        proc.waitFor()
+        if (proc.exitValue() != 0 || !listFile.isFile) {
+            throw GradleException("morphe list-patches failed (exit ${proc.exitValue()}):\n$cliOut")
+        }
+        val expected = mutableSetOf<String>()
+        var current: String? = null
+        for (raw in listFile.readLines()) {
+            val line = raw.removePrefix("INFO: ").trim()
+            when {
+                line.startsWith("Name: ") -> current = line.removePrefix("Name: ")
+                line == "Enabled: true" && current != null -> expected.add(current)
+                line == "Enabled: false" -> {}
+            }
+        }
+        expected.addAll(optInPatches)
+
+        // Actual: what the report says happened.
+        @Suppress("UNCHECKED_CAST")
+        val parsed = groovy.json.JsonSlurper().parse(report) as Map<String, Any?>
+        @Suppress("UNCHECKED_CAST")
+        val applied = ((parsed["appliedPatches"] as List<Map<String, Any?>>?).orEmpty())
+            .mapNotNull { it["name"] as? String }.toSet()
+        @Suppress("UNCHECKED_CAST")
+        val failed = ((parsed["failedPatches"] as List<Map<String, Any?>>?).orEmpty())
+            .mapNotNull { it["name"] as? String }
+
+        val missing = expected - applied
+        val unexpected = applied - expected
+        println("    gate  ${applied.size} applied, ${expected.size} expected (bundle defaults + $optInPatches)")
+        val problems = buildList {
+            if (failed.isNotEmpty()) add("failed patches:     ${failed.joinToString()}")
+            if (missing.isNotEmpty()) add("missing patches:    ${missing.sorted().joinToString()}")
+            if (unexpected.isNotEmpty()) add("unexpected patches: ${unexpected.sorted().joinToString()}")
+        }
+        if (problems.isNotEmpty()) {
+            throw GradleException(
+                "Patch gate: the applied set does not match the bundle's declared set.\n" +
+                    problems.joinToString("\n")
+            )
+        }
+    }
+}
+
+patchApk.configure { finalizedBy(checkPatches) }
 
 val signApk = tasks.register<Exec>("signApk") {
     group = "unhooked"

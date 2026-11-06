@@ -3,12 +3,14 @@ package com.unhooked.extension;
 import android.content.Context;
 import android.content.SharedPreferences;
 
+import java.util.HashMap;
+
 /**
  * Runtime configuration backed by SharedPreferences ("unhooked_prefs").
  *
  * Independent block toggles (feed, explore, reels, stories, instants, notes,
- * suggested, ads). The application Context is resolved reflectively so no
- * patched class needs to hand us one.
+ * suggested, ads) plus the permanent "hardcore" lock. The application Context
+ * is resolved reflectively so no patched class needs to hand us one.
  */
 public final class Config {
 
@@ -20,6 +22,14 @@ public final class Config {
      * Cleared implicitly on every process start.
      */
     private static boolean sNeedsRestart;
+
+    /**
+     * Snapshot of every block_* toggle captured when the settings page opens.
+     * The permanent lock only freezes surfaces that were already blocked at this
+     * snapshot, so a mis-toggle made during the current session can still be
+     * undone until Done restarts the app. Null until captureBaseline() runs.
+     */
+    private static HashMap<String, Boolean> sBaseline;
 
     private Config() {}
 
@@ -47,7 +57,49 @@ public final class Config {
     public static void setBlocked(String key, boolean value) {
         SharedPreferences prefs = prefs();
         if (prefs == null) return;
+        // Hardcore lock only forbids *revealing* a surface. Hiding one is always
+        // allowed so users can still tighten. A surface may be revealed only when
+        // it was already visible at the start of the current settings session
+        // (undo of a mis-toggle); one hidden at session open stays frozen until a
+        // reinstall.
+        if (isHardcoreMode()
+                && isLockable(key)
+                && !hidesSurface(key, value)
+                && wasHiddenAtBaseline(key)) {
+            return;
+        }
         prefs.edit().putBoolean(key, value).apply();
+    }
+
+    /**
+     * Toggles the permanent lock can freeze: the content blocks and the
+     * navigation-bar icons. The nav icons are cosmetic, but hiding one is how
+     * people cut off a surface they keep falling back into (the Direct tab's
+     * search behaves like Explore), so leaving them freely re-enabled defeated
+     * the lock — issue #93.
+     */
+    public static boolean isLockable(String key) {
+        return key != null && (key.startsWith("block_") || key.startsWith("nav_show_"));
+    }
+
+    /**
+     * Whether this value leaves the surface hidden. The two families store
+     * opposite polarities: {@code block_*} is true when hidden, {@code nav_show_*}
+     * is true when shown.
+     */
+    public static boolean hidesSurface(String key, boolean value) {
+        if (key == null) return false;
+        return key.startsWith("nav_show_") ? !value : value;
+    }
+
+    public static boolean isHardcoreMode() {
+        return getBlocked("hardcore_mode", false);
+    }
+
+    public static void enableHardcoreMode() {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putBoolean("hardcore_mode", true).apply();
     }
 
     /** Whether to check GitHub for a newer release on launch. On by default. */
@@ -117,12 +169,49 @@ public final class Config {
     /**
      * Bottom-navigation icon visibility, stored per tab as {@code nav_show_<tab>}
      * (true = shown). Independent of the content blocks, so hiding the Reels
-     * *icon* is decoupled from blocking Reels *content*. Home is deliberately not
-     * configurable: long-pressing it is the only Settings entry point, so it must
-     * stay present and tappable. Reels defaults to hidden to preserve the previous
-     * behaviour (blocking reels used to also hide the tab).
+     * *icon* is decoupled from blocking Reels *content*. Reels defaults to hidden
+     * to preserve the previous behaviour (blocking reels used to also hide the tab).
      */
     public static boolean isReelsTabShown() { return getBlocked("nav_show_reels", false); }
+
+    /**
+     * Whether the Home icon is on the bar (upstream issue #127). Long-pressing a
+     * tab is the only way into the settings: with Home hidden the gesture moves
+     * to the first icon left on the bar, so Home only goes once another icon is
+     * there to take it over — hiding every icon keeps Home, or the settings would
+     * be unreachable.
+     */
+    public static boolean isHomeTabShown() {
+        if (isQuoicouviewEnabled()) return false; // Messages, always shown, takes over
+        if (getBlocked("nav_show_home", true)) return true;
+        for (String key : NAV_KEYS) {
+            if (!"nav_show_home".equals(key) && getBlocked(key, navDefault(key))) return false;
+        }
+        return true;
+    }
+
+    /**
+     * Quoicouview mode (experimental, off by default): Messages is the main page,
+     * with the stories tray on top of it, and Home is off. While it is on, Home
+     * counts as hidden, Messages as shown and the landing page is Messages,
+     * whatever their own settings say; those are kept and apply again once the
+     * mode is turned off. Not a block_* surface, so the permanent lock does not
+     * freeze it, but it cannot bring back a Messages icon the lock keeps hidden:
+     * the mode simply does not apply then. See {@link Quoicouview}.
+     */
+    public static boolean isQuoicouviewEnabled() {
+        return getBlocked("quoicouview_mode", false) && isQuoicouviewAvailable();
+    }
+
+    /** False while the permanent lock keeps the Messages icon hidden. */
+    public static boolean isQuoicouviewAvailable() {
+        return !(isHardcoreMode() && !getBlocked("nav_show_direct", true));
+    }
+
+    /** Whether the card presenting Quoicouview mode has been shown on this installation. */
+    public static boolean isQuoicouviewIntroShown() { return getBlocked("quoicouview_intro_shown", false); }
+
+    public static void setQuoicouviewIntroShown() { setBlocked("quoicouview_intro_shown", true); }
 
     /**
      * Whether the first-run coach mark (long-press Home to open settings) has
@@ -135,7 +224,7 @@ public final class Config {
 
     /** Navigation-bar icons, with the default the getters use (true = shown). */
     private static final String[] NAV_KEYS = {
-            "nav_show_search", "nav_show_reels", "nav_show_create",
+            "nav_show_home", "nav_show_search", "nav_show_reels", "nav_show_create",
             "nav_show_direct", "nav_show_profile",
     };
 
@@ -146,14 +235,30 @@ public final class Config {
 
     /** Whether the bottom-bar icon for a {@code nav_show_*} key is currently shown. */
     public static boolean isNavTabShown(String navKey) {
+        if ("nav_show_home".equals(navKey)) return isHomeTabShown();
+        if ("nav_show_direct".equals(navKey) && isQuoicouviewEnabled()) return true;
         return getBlocked(navKey, navDefault(navKey));
+    }
+
+    /** The {@code nav_show_*} key behind a bottom-bar tab's resource name, or null. */
+    public static String navKeyForTab(String tab) {
+        switch (tab == null ? "" : tab) {
+            case "feed_tab": return "nav_show_home";
+            case "search_tab": return "nav_show_search";
+            case "clips_tab": return "nav_show_reels";
+            case "creation_tab": return "nav_show_create";
+            case "direct_tab": return "nav_show_direct";
+            case "profile_tab": return "nav_show_profile";
+            default: return null;
+        }
     }
 
     /**
      * The {@code nav_show_*} key whose icon a landing page rides on, or null for
-     * "home" (whose tab is never configurable) and for anything unrecognised.
+     * anything unrecognised.
      */
     public static String navKeyForLanding(String landing) {
+        if ("home".equals(landing)) return "nav_show_home";
         if ("search".equals(landing)) return "nav_show_search";
         if ("direct".equals(landing)) return "nav_show_direct";
         if ("profile".equals(landing)) return "nav_show_profile";
@@ -162,23 +267,28 @@ public final class Config {
 
     /**
      * Whether a surface may be used as the landing page. Landing on a tab that was
-     * hidden from the bottom bar would hand back the very surface the user removed,
-     * so a hidden tab is not a candidate.
+     * hidden from the bottom bar would hand back the very surface the user removed
+     * — and under the permanent lock it was a way around a frozen toggle, since the
+     * landing picker was never locked (issue #116). So a hidden tab is not a
+     * candidate, lock or no lock.
      */
     public static boolean isLandingAvailable(String landing) {
+        if (isQuoicouviewEnabled()) return "direct".equals(landing);
         String navKey = navKeyForLanding(landing);
         return navKey == null || isNavTabShown(navKey);
     }
 
     /**
      * The surface the app should jump to on cold start: one of "home" (default),
-     * "search", "direct", "profile".
+     * "search", "direct", "profile". In Quoicouview mode it is always Messages.
      */
     public static String getLandingPage() {
+        if (isQuoicouviewEnabled()) return "direct";
         SharedPreferences prefs = prefs();
         String stored = prefs == null ? "home" : prefs.getString("landing_page", "home");
         // The stored choice is kept as-is so re-showing the tab restores it, but a
-        // landing page whose tab is hidden right now falls back to the home feed.
+        // landing page whose tab is hidden right now falls back to "home": the home
+        // feed, or with the Home icon hidden too, the first icon on the bar.
         return isLandingAvailable(stored) ? stored : "home";
     }
 
@@ -203,6 +313,47 @@ public final class Config {
         SharedPreferences prefs = prefs();
         if (prefs == null || value == null) return;
         prefs.edit().putString("last_seen_version", value).apply();
+    }
+
+    /** Snapshot every lockable toggle's current value for the permanent lock. */
+    public static void captureBaseline() {
+        HashMap<String, Boolean> baseline = new HashMap<>();
+        baseline.put("block_feed", isFeedBlocked());
+        baseline.put("block_explore", isExploreBlocked());
+        baseline.put("block_reels", isReelsBlocked());
+        baseline.put("block_friends_lane", isFriendsLaneBlocked());
+        baseline.put("block_stories", isStoriesBlocked());
+        baseline.put("block_instants", isInstantsBlocked());
+        baseline.put("block_notes", isNotesBlocked());
+        baseline.put("block_suggested", isSuggestedBlocked());
+        baseline.put("block_ads", isAdsBlocked());
+        for (String key : NAV_KEYS) {
+            baseline.put(key, getBlocked(key, navDefault(key)));
+        }
+        sBaseline = baseline;
+    }
+
+    /**
+     * True if the given key's surface was already hidden at the start of the
+     * current settings session. Falls back to the live persisted value when no
+     * baseline was captured (calls outside the settings page).
+     */
+    public static boolean wasHiddenAtBaseline(String key) {
+        Boolean captured = sBaseline == null ? null : sBaseline.get(key);
+        boolean value = captured != null ? captured : getBlocked(key, lockableDefault(key));
+        return hidesSurface(key, value);
+    }
+
+    /**
+     * Default for a lockable key, used only when no baseline was captured (a write
+     * from outside the settings page). block_* falls back to false — "not blocked
+     * at baseline" — which errs on the permissive side rather than freezing a
+     * surface the user never locked.
+     */
+    private static boolean lockableDefault(String key) {
+        if (key == null) return false;
+        if (key.startsWith("nav_show_")) return navDefault(key);
+        return false;
     }
 
     public static void setNeedsRestart() { sNeedsRestart = true; }

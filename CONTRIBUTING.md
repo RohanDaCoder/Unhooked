@@ -11,7 +11,6 @@ You can help by:
 - reporting bugs with clear reproduction steps;
 - testing Unhooked on different Android versions and devices;
 - improving documentation;
-- improving installation instructions;
 - updating patches for newer Instagram versions;
 - investigating broken features after Instagram updates;
 - improving build and release scripts.
@@ -42,8 +41,7 @@ Before opening a pull request:
 Good first contributions include:
 
 - fixing typos;
-- improving the FAQ;
-- clarifying installation steps;
+- clarifying build or installation steps;
 - adding screenshots;
 - testing on a specific Android device;
 - documenting known issues.

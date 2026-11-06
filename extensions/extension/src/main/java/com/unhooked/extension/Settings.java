@@ -2,6 +2,7 @@ package com.unhooked.extension;
 
 import android.app.Activity;
 import android.app.Dialog;
+import android.animation.ValueAnimator;
 import android.content.Context;
 import android.content.ContextWrapper;
 import android.content.Intent;
@@ -23,12 +24,13 @@ import android.view.WindowInsets;
 import android.view.WindowInsetsController;
 import android.view.WindowManager;
 import android.view.animation.DecelerateInterpolator;
+import android.view.animation.AccelerateInterpolator;
 import android.widget.Button;
 import android.widget.FrameLayout;
+import android.widget.ImageView;
 import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.ScrollView;
-import android.widget.Switch;
 import android.widget.TextView;
 import android.widget.Toast;
 
@@ -36,9 +38,9 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Unhooked settings, shown as a full-screen page when the Home tab is
- * long-pressed. Built entirely in code (no bundled resources) and persisted
- * through {@link Config}.
+ * Unhooked settings, shown as a full-screen page when the Home tab (or, with
+ * Home hidden, the first tab on the bar) is long-pressed. Built entirely in code
+ * (no bundled resources) and persisted through {@link Config}.
  *
  * <h3>The look: Material 3 Expressive, monochrome</h3>
  * White is the only accent — no hue anywhere, so the panel reads as part of a
@@ -111,7 +113,9 @@ public final class Settings {
         tabBar.getViewTreeObserver().addOnGlobalLayoutListener(new HomeTabWatcher(tabBar));
         Hiders.installAll(tabBar);
         Context activity = getActivityContext(tabBar);
-        UpdateChecker.checkWhatsNew(activity);
+        // The card presenting Quoicouview mode comes first after an update;
+        // "What's new" waits until it is dismissed.
+        QuoicouviewIntro.maybeShow(activity, () -> UpdateChecker.checkWhatsNew(activity));
         UpdateChecker.check(activity);
     }
 
@@ -134,9 +138,10 @@ public final class Settings {
     public static void show(Context context) {
         if (context == null) return;
         try {
-            Dialog dialog = new Dialog(context, android.R.style.Theme_Material_NoActionBar);
+            SettingsDialog dialog = new SettingsDialog(context);
             dialog.requestWindowFeature(Window.FEATURE_NO_TITLE);
             View content = buildContent(context, dialog);
+            dialog.page = content;
             dialog.setContentView(content);
 
             // Opening animation: the page rises and fades in over Instagram. The window
@@ -340,12 +345,15 @@ public final class Settings {
 
         ScrollView scroll = new ScrollView(context);
         scroll.setVerticalScrollBarEnabled(false);
-        scroll.setClipToPadding(false);
-        scroll.setPadding(0, 0, 0, dp(context, 12));
+        // The fading edge is drawn inside the scroller's padding, so bottom
+        // padding here would leave a band of unfaded rows under the fade. The
+        // breathing room goes on the content instead, keeping the fade flush
+        // with the scroller's edge, right above the action row.
         scroll.setVerticalFadingEdgeEnabled(true);
         scroll.setFadingEdgeLength(dp(context, 28));
         LinearLayout content = new LinearLayout(context);
         content.setOrientation(LinearLayout.VERTICAL);
+        content.setPadding(0, 0, 0, dp(context, 12));
         scroll.addView(content);
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
@@ -388,7 +396,125 @@ public final class Settings {
 
     // --- The settings page ----------------------------------------------------
 
-    private static View buildContent(Context context, Dialog dialog) {
+    /**
+     * The settings window. Its pages share one dialog: Back on a section page
+     * returns to the overview instead of closing settings. The platform routes
+     * both the Back key and the predictive-back gesture through onBackPressed.
+     */
+    private static final class SettingsDialog extends Dialog {
+        /** Set while a section page is open. */
+        Runnable onBack;
+        View page;
+        private boolean closing;
+
+        SettingsDialog(Context context) {
+            super(context, android.R.style.Theme_Material_NoActionBar);
+        }
+
+        @Override
+        @SuppressWarnings("deprecation")
+        public void onBackPressed() {
+            if (onBack != null) {
+                onBack.run();
+                return;
+            }
+            cancel();
+        }
+
+        @Override
+        public void cancel() {
+            if (closing) return;
+            if (page == null || !isShowing() || !ValueAnimator.areAnimatorsEnabled()) {
+                super.cancel();
+                return;
+            }
+            closing = true;
+            page.animate().cancel();
+            page.animate().alpha(0f).translationY(dp(getContext(), OPEN_RISE_DP))
+                    .setDuration(200L)
+                    .setInterpolator(new AccelerateInterpolator(1.5f))
+                    .withEndAction(this::finishCancel).start();
+        }
+
+        private void finishCancel() {
+            super.cancel();
+        }
+    }
+
+    /** Fills a section page's column. */
+    private interface SectionBuilder {
+        void build(Context context, LinearLayout column);
+    }
+
+    /** How far a page slides while it is swapped in. */
+    private static final int PAGE_SLIDE_DP = 24;
+    /** Length of the page swap. */
+    private static final long PAGE_SWAP_MS = 180L;
+
+    /**
+     * The settings pages: an overview of sections, each opening its own page in
+     * the same window. Header, scroller and the pinned action row are shared;
+     * only the title, the back arrow and the column's rows change.
+     */
+    private static final class Pages {
+        final Context context;
+        final SettingsDialog dialog;
+        final boolean hardcore;
+        final View back;
+        final TextView title;
+        final TextView subtitle;
+        final ScrollView scroll;
+        final LinearLayout column;
+
+        Pages(Context context, SettingsDialog dialog, boolean hardcore, View back, TextView title,
+              TextView subtitle, ScrollView scroll, LinearLayout column) {
+            this.context = context;
+            this.dialog = dialog;
+            this.hardcore = hardcore;
+            this.back = back;
+            this.title = title;
+            this.subtitle = subtitle;
+            this.scroll = scroll;
+            this.column = column;
+        }
+
+        void showOverview(boolean animate) {
+            dialog.onBack = null;
+            back.setVisibility(View.GONE);
+            title.setText("Unhooked");
+            subtitle.setText(hardcore
+                    ? "Permanent lock is on. You can tighten blocks but not loosen them. "
+                            + "Reinstall to fully unlock."
+                    : "Choose what to hide. Tap Done to clear the cache and restart.");
+            swap(animate, -1, () -> buildOverview(context, column, this));
+        }
+
+        void open(String name, String support, SectionBuilder builder) {
+            dialog.onBack = () -> showOverview(true);
+            back.setVisibility(View.VISIBLE);
+            title.setText(name);
+            subtitle.setText(support);
+            swap(true, 1, () -> builder.build(context, column));
+        }
+
+        /** Rebuild the column, sliding in from the side the user is heading to. */
+        private void swap(boolean animate, int direction, Runnable fill) {
+            column.removeAllViews();
+            fill.run();
+            scroll.scrollTo(0, 0);
+            if (!animate) return;
+            column.setAlpha(0f);
+            column.setTranslationX(direction * dp(context, PAGE_SLIDE_DP));
+            column.animate().alpha(1f).translationX(0f).setDuration(PAGE_SWAP_MS)
+                    .setInterpolator(new DecelerateInterpolator(2f)).start();
+        }
+    }
+
+    private static View buildContent(Context context, SettingsDialog dialog) {
+        // Snapshot block state so the permanent lock freezes only what's blocked now.
+        Config.captureBaseline();
+        boolean hardcore = Config.isHardcoreMode();
+
         final LinearLayout root = new LinearLayout(context);
         root.setOrientation(LinearLayout.VERTICAL);
         root.setBackgroundColor(SURFACE);
@@ -399,80 +525,240 @@ public final class Settings {
         header.setPadding(dp(context, 4), dp(context, 12), dp(context, 4), dp(context, 4));
         root.addView(header);
 
+        // Back arrow above the title, aligned with it: the 48dp touch target
+        // reaches 12dp past the column's edge, as an M3 top app bar's does.
+        ImageView back = new ImageView(context);
+        back.setImageDrawable(igIcon(context, ON_SURFACE, "instagram_arrow_left_pano_outline_24",
+                "instagram_arrow_left_outline_24"));
+        back.setScaleType(ImageView.ScaleType.CENTER);
+        back.setContentDescription("Back");
+        back.setBackground(ripple(RIPPLE, oval(Color.TRANSPARENT)));
+        LinearLayout.LayoutParams backLp = new LinearLayout.LayoutParams(dp(context, 48), dp(context, 48));
+        backLp.setMargins(-dp(context, 12), 0, 0, dp(context, 4));
+        header.addView(back, backLp);
+
         TextView title = new TextView(context);
-        title.setText("Unhooked");
         headline(title);
         header.addView(title);
 
         TextView subtitle = new TextView(context);
-        subtitle.setText("Choose what to hide. Tap Done to clear the cache and restart.");
         body(subtitle);
         subtitle.setPadding(0, dp(context, 6), 0, 0);
         header.addView(subtitle);
 
         ScrollView scroll = new ScrollView(context);
         scroll.setVerticalScrollBarEnabled(false);
-        scroll.setClipToPadding(false);
-        scroll.setPadding(0, 0, 0, dp(context, 12));
+        // The fading edge is drawn inside the scroller's padding, so bottom
+        // padding here would leave a band of unfaded rows under the fade. The
+        // breathing room goes on the content instead, keeping the fade flush
+        // with the scroller's edge, right above the action row.
         scroll.setVerticalFadingEdgeEnabled(true);
         scroll.setFadingEdgeLength(dp(context, 28));
         LinearLayout column = new LinearLayout(context);
         column.setOrientation(LinearLayout.VERTICAL);
+        column.setPadding(0, 0, 0, dp(context, 12));
         scroll.addView(column);
         root.addView(scroll, new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, 0, 1f));
 
-        LinearLayout surfaces = addSection(context, column, "Blocked surfaces");
-        addRow(context, surfaces, "Home feed", "block_feed", Config.isFeedBlocked());
-        addRow(context, surfaces, "Explore", "block_explore", Config.isExploreBlocked());
-        addRow(context, surfaces, "Reels", "block_reels", Config.isReelsBlocked());
-        addRow(context, surfaces, "Friends in Reels", "block_friends_lane", Config.isFriendsLaneBlocked());
-        addRow(context, surfaces, "Stories", "block_stories", Config.isStoriesBlocked());
-        addRow(context, surfaces, "Instants", "block_instants", Config.isInstantsBlocked());
-        addRow(context, surfaces, "Notes", "block_notes", Config.isNotesBlocked());
-        addRow(context, surfaces, "Suggested accounts", "block_suggested", Config.isSuggestedBlocked());
-        addRow(context, surfaces, "Ads", "block_ads", Config.isAdsBlocked());
-        addRow(context, surfaces, "Notifications button", "block_notifications",
-                Config.isNotificationsButtonBlocked());
+        Pages pages = new Pages(context, dialog, hardcore, back, title, subtitle, scroll, column);
+        back.setOnClickListener(v -> pages.showOverview(true));
+        pages.showOverview(false);
+
+        // Pinned action bar, on every page, so Done is always one tap away. Two
+        // equal pills rather than end-aligned buttons: it cannot overflow, however
+        // narrow the screen or long the label.
+        LinearLayout actions = new LinearLayout(context);
+        actions.setOrientation(LinearLayout.HORIZONTAL);
+        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
+                ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
+        actionsLp.setMargins(0, dp(context, 12), 0, 0);
+        root.addView(actions, actionsLp);
+
+        Button lock = makeButton(context, "Permanent lock", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
+        lock.setOnClickListener(v -> {
+            dialog.dismiss();
+            confirmHardcore(context);
+        });
+        if (hardcore) {
+            lock.setEnabled(false);
+            lock.setAlpha(0.38f);
+        }
+        actions.addView(lock, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        View spacer = new View(context);
+        actions.addView(spacer, new LinearLayout.LayoutParams(dp(context, 8), 1));
+
+        Button done = makeButton(context, "Done", PRIMARY, ON_PRIMARY, true);
+        done.setOnClickListener(v -> {
+            dialog.dismiss();
+            onDone(context);
+        });
+        actions.addView(done, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
+
+        return root;
+    }
+
+    // --- The overview and its sections -----------------------------------------
+
+    /** Keys behind the "Blocked surfaces" page, in display order. */
+    private static final String[] SURFACE_KEYS = {
+            "block_feed", "block_explore", "block_reels", "block_friends_lane", "block_stories",
+            "block_instants", "block_notes", "block_suggested", "block_ads", "block_notifications",
+    };
+
+    private static void buildOverview(Context context, LinearLayout column, Pages pages) {
+        LinearLayout experimental = addSection(context, column, "Experimental feature");
+        addRow(context, experimental, "Quoicouview mode", "quoicouview_mode", Config.isQuoicouviewEnabled());
+        if (!Config.isQuoicouviewAvailable()) greyOut(experimental.getChildAt(experimental.getChildCount() - 1));
+        sealGroup(context, experimental);
+
+        LinearLayout content = addSection(context, column, "Content");
+        int hidden = 0;
+        for (String key : SURFACE_KEYS) {
+            if (isSurfaceHidden(key)) hidden++;
+        }
+        addSectionRow(context, content, "eye_off", "Blocked surfaces",
+                hidden + " of " + SURFACE_KEYS.length + " hidden",
+                () -> pages.open("Blocked surfaces", "Hide parts of Instagram.", Settings::buildSurfaces));
+        addSectionRow(context, content, "layout", "Navigation bar", navSummary(context),
+                () -> pages.open("Navigation bar", "Choose the icons on the bottom bar.", Settings::buildNav));
+        addSectionRow(context, content, "home", "Feed",
+                Config.isFollowingFeedOnly() ? "Following only" : "Recommended",
+                () -> pages.open("Feed", "How the home feed is put together.", Settings::buildFeed));
+        addSectionRow(context, content, "flag", "Landing page", landingLabel(Config.getLandingPage()),
+                () -> pages.open("Landing page", "Where Instagram opens on a cold start.",
+                        Settings::buildLanding));
+        sealGroup(context, content);
+
+        LinearLayout app = addSection(context, column, "App");
+        addSectionRow(context, app, "moon", "Display and popups", displaySummary(),
+                () -> pages.open("Display and popups", "How Instagram looks and talks to you.",
+                        Settings::buildDisplay));
+        addSectionRow(context, app, "lock", "Privacy", privacySummary(),
+                () -> pages.open("Privacy", "What Instagram is allowed to report about you.",
+                        Settings::buildPrivacy));
+        addSectionRow(context, app, "download", "Updates",
+                Config.isAutoUpdateEnabled() ? "Automatic check on" : "Automatic check off",
+                () -> pages.open("Updates", "Keep Unhooked current.", Settings::buildUpdates));
+        addSectionRow(context, app, "heart", "Support", "Free and open source",
+                () -> pages.open("Support", "Unhooked is free and open source.", Settings::buildSupport));
+        sealGroup(context, app);
+    }
+
+    /** Whether a surface is hidden, with that key's own default. */
+    private static boolean isSurfaceHidden(String key) {
+        switch (key) {
+            case "block_feed": return Config.isFeedBlocked();
+            case "block_explore": return Config.isExploreBlocked();
+            case "block_reels": return Config.isReelsBlocked();
+            case "block_friends_lane": return Config.isFriendsLaneBlocked();
+            case "block_stories": return Config.isStoriesBlocked();
+            case "block_instants": return Config.isInstantsBlocked();
+            case "block_notes": return Config.isNotesBlocked();
+            case "block_suggested": return Config.isSuggestedBlocked();
+            case "block_ads": return Config.isAdsBlocked();
+            case "block_notifications": return Config.isNotificationsButtonBlocked();
+            default: return Config.getBlocked(key, false);
+        }
+    }
+
+    private static String surfaceLabel(String key) {
+        switch (key) {
+            case "block_feed": return "Home feed";
+            case "block_explore": return "Explore";
+            case "block_reels": return "Reels";
+            case "block_friends_lane": return "Friends row in Reels";
+            case "block_stories": return "Stories";
+            case "block_instants": return "Instants";
+            case "block_notes": return "Notes";
+            case "block_suggested": return "Suggested accounts";
+            case "block_ads": return "Ads";
+            case "block_notifications": return "Heart button";
+            default: return key;
+        }
+    }
+
+    private static void buildSurfaces(Context context, LinearLayout column) {
+        LinearLayout surfaces = addGroup(context, column);
+        for (String key : SURFACE_KEYS) {
+            addRow(context, surfaces, surfaceLabel(key), key, isSurfaceHidden(key));
+        }
         sealGroup(context, surfaces);
+    }
 
-        // Hiding a nav icon also takes its surface out of the landing-page picker,
-        // so the two sections have to stay in step while the panel is open.
-        final Runnable[] landingSync = new Runnable[1];
-        Runnable onNavChanged = () -> {
-            if (landingSync[0] != null) landingSync[0].run();
-        };
+    private static void buildNav(Context context, LinearLayout column) {
+        addSectionLabel(context, column, "Preview");
+        NavPreview preview = new NavPreview(context);
+        column.addView(preview.view);
 
-        LinearLayout nav = addSection(context, column, "Navigation bar");
-        addRow(context, nav, "Search", "nav_show_search", Config.getBlocked("nav_show_search", true), onNavChanged);
-        addRow(context, nav, "Reels", "nav_show_reels", Config.getBlocked("nav_show_reels", false), onNavChanged);
-        addRow(context, nav, "Create", "nav_show_create", Config.getBlocked("nav_show_create", true), onNavChanged);
-        addRow(context, nav, "Messages", "nav_show_direct", Config.getBlocked("nav_show_direct", true), onNavChanged);
-        addRow(context, nav, "Profile", "nav_show_profile", Config.getBlocked("nav_show_profile", true), onNavChanged);
+        LinearLayout nav = addSection(context, column, "Icons");
+        Runnable refresh = preview::refresh;
+        addRow(context, nav, "Home", "nav_show_home", Config.getBlocked("nav_show_home", true), refresh);
+        addRow(context, nav, "Search", "nav_show_search", Config.getBlocked("nav_show_search", true), refresh);
+        addRow(context, nav, "Reels", "nav_show_reels", Config.getBlocked("nav_show_reels", false), refresh);
+        addRow(context, nav, "Create", "nav_show_create", Config.getBlocked("nav_show_create", true), refresh);
+        addRow(context, nav, "Messages", "nav_show_direct", Config.getBlocked("nav_show_direct", true), refresh);
+        addRow(context, nav, "Profile", "nav_show_profile", Config.getBlocked("nav_show_profile", true), refresh);
         sealGroup(context, nav);
 
-        LinearLayout feed = addSection(context, column, "Feed");
+        // Instagram drops tabs between versions (451 has no Create tab). A toggle
+        // for a tab the live bar does not have would do nothing, so it is greyed
+        // out; outside the app the order is a guess and every row stays live.
+        String[] tabs = {"feed_tab", "search_tab", "clips_tab", "creation_tab", "direct_tab", "profile_tab"};
+        if (NavPreview.isLive(context)) {
+            List<String> present = NavPreview.barOrder(context);
+            for (int i = 0; i < tabs.length && i < nav.getChildCount(); i++) {
+                if (!present.contains(tabs[i])) greyOut(nav.getChildAt(i));
+            }
+        }
+        // Quoicouview mode decides these two itself: Home off, Messages on.
+        if (Config.isQuoicouviewEnabled()) {
+            for (int i = 0; i < tabs.length && i < nav.getChildCount(); i++) {
+                if (tabs[i].equals("feed_tab") || tabs[i].equals("direct_tab")) greyOut(nav.getChildAt(i));
+            }
+        }
+    }
+
+    /** Disable a settings row and everything in it, dimmed like a disabled control. */
+    private static void greyOut(View row) {
+        if (row instanceof ViewGroup) {
+            ViewGroup group = (ViewGroup) row;
+            for (int j = 0; j < group.getChildCount(); j++) group.getChildAt(j).setEnabled(false);
+        }
+        row.setEnabled(false);
+        row.setClickable(false);
+        row.setAlpha(0.38f);
+    }
+
+    private static void buildFeed(Context context, LinearLayout column) {
+        LinearLayout feed = addGroup(context, column);
         addRow(context, feed, "Following feed only", "limit_following_feed", Config.isFollowingFeedOnly());
         sealGroup(context, feed);
+    }
 
-        LinearLayout popups = addSection(context, column, "Popups");
-        addRow(context, popups, "Instagram popups", "hide_toasts", Config.arePopupsHidden());
-        sealGroup(context, popups);
+    private static void buildLanding(Context context, LinearLayout column) {
+        LinearLayout landing = addGroup(context, column);
+        buildLandingOptions(context, landing, new Runnable[1]);
+        sealGroup(context, landing);
+    }
 
-        LinearLayout display = addSection(context, column, "Display");
+    private static void buildDisplay(Context context, LinearLayout column) {
+        LinearLayout display = addGroup(context, column);
         addRow(context, display, "Force dark (disable HDR)", "force_sdr", Config.isForceSdr());
+        addRow(context, display, "Instagram popups", "hide_toasts", Config.arePopupsHidden());
         sealGroup(context, display);
+    }
 
-        LinearLayout privacy = addSection(context, column, "Privacy");
+    private static void buildPrivacy(Context context, LinearLayout column) {
+        LinearLayout privacy = addGroup(context, column);
         addRow(context, privacy, "Allow screenshots", "allow_screenshots",
                 Config.isScreenshotBypassEnabled());
         sealGroup(context, privacy);
+    }
 
-        LinearLayout landing = addSection(context, column, "Landing page");
-        buildLandingOptions(context, landing, landingSync);
-        sealGroup(context, landing);
-
-        LinearLayout updates = addSection(context, column, "Updates");
+    private static void buildUpdates(Context context, LinearLayout column) {
+        LinearLayout updates = addGroup(context, column);
         addRow(context, updates, "Automatic update check", "auto_update", Config.isAutoUpdateEnabled());
         sealGroup(context, updates);
 
@@ -489,24 +775,220 @@ public final class Settings {
         about.setGravity(Gravity.CENTER_HORIZONTAL);
         about.setPadding(0, dp(context, 12), 0, 0);
         column.addView(about);
+    }
 
-        // Pinned action row. A single full-width pill cannot overflow, however
-        // narrow the screen or long the label.
-        LinearLayout actions = new LinearLayout(context);
-        actions.setOrientation(LinearLayout.HORIZONTAL);
-        LinearLayout.LayoutParams actionsLp = new LinearLayout.LayoutParams(
+    private static void buildSupport(Context context, LinearLayout column) {
+        Button source = makeButton(context, "Source code on GitLab", 0, ON_SURFACE, false);
+        source.setBackground(outlined(context, OUTLINE_VARIANT));
+        source.setOnClickListener(v -> openUrl(context, "https://gitlab.com/RohanDaCoder/Unhooked"));
+        column.addView(source, stackedButtonParams(context, 16));
+    }
+
+    private static String displaySummary() {
+        String dark = Config.isForceSdr() ? "Force dark on" : "Force dark off";
+        String popups = Config.arePopupsHidden() ? "popups hidden" : "popups shown";
+        return dark + ", " + popups;
+    }
+
+    private static String privacySummary() {
+        return Config.isScreenshotBypassEnabled()
+                ? "View-once screenshots allowed"
+                : "View-once screenshots blocked";
+    }
+
+    private static String landingLabel(String value) {
+        // "home" with the Home icon hidden: the landing redirect opens the first icon.
+        if (!Config.isLandingAvailable(value)) return "First icon on the bar";
+        for (int i = 0; i < LANDING_VALUES.length; i++) {
+            if (LANDING_VALUES[i].equals(value)) return LANDING_LABELS[i];
+        }
+        return LANDING_LABELS[0];
+    }
+
+    /** The shown icons, in bar order, e.g. "Home, Messages, Search, Profile". */
+    private static String navSummary(Context context) {
+        StringBuilder out = new StringBuilder();
+        for (String tab : NavPreview.barOrder(context)) {
+            if (!NavPreview.isShown(tab)) continue;
+            if (out.length() > 0) out.append(", ");
+            out.append(NavPreview.label(tab));
+        }
+        return out.toString();
+    }
+
+    /**
+     * A row that opens a section page: Instagram's own outline icon, the name, a
+     * one-line summary of the current state, and a chevron.
+     */
+    private static void addSectionRow(Context context, LinearLayout parent, String icon, String label,
+                                      String summary, Runnable onClick) {
+        LinearLayout row = makeRow(context, parent, label, summary);
+        Drawable glyph = igIcon(context, ON_SURFACE, "instagram_" + icon + "_pano_outline_24",
+                "instagram_" + icon + "_outline_24");
+        if (glyph != null) {
+            ImageView lead = new ImageView(context);
+            lead.setImageDrawable(glyph);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(context, 24), dp(context, 24));
+            lp.setMargins(0, 0, dp(context, 16), 0);
+            row.addView(lead, 0, lp);
+        }
+        Drawable chevron = igIcon(context, ON_SURFACE_VARIANT, "instagram_chevron_right_pano_outline_24",
+                "instagram_chevron_right_outline_24");
+        if (chevron != null) {
+            ImageView trail = new ImageView(context);
+            trail.setImageDrawable(chevron);
+            LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(dp(context, 20), dp(context, 20));
+            lp.setMargins(dp(context, 12), 0, 0, 0);
+            row.addView(trail, lp);
+        }
+        row.setOnClickListener(v -> onClick.run());
+    }
+
+    /**
+     * A live picture of the bottom bar: the icons that will show, in the order
+     * Instagram lays them out, redrawn as the toggles below change.
+     */
+    private static final class NavPreview {
+        private static final String[] DEFAULT_ORDER = {
+                "feed_tab", "clips_tab", "direct_tab", "search_tab", "creation_tab", "profile_tab",
+        };
+
+        final LinearLayout view;
+        private final Context context;
+        private final List<String> order;
+
+        NavPreview(Context context) {
+            this.context = context;
+            this.order = barOrder(context);
+            view = new LinearLayout(context);
+            view.setOrientation(LinearLayout.HORIZONTAL);
+            view.setGravity(Gravity.CENTER_VERTICAL);
+            view.setMinimumHeight(dp(context, 64));
+            view.setPadding(dp(context, 8), dp(context, 8), dp(context, 8), dp(context, 8));
+            view.setBackground(roundedRect(SURFACE_CONTAINER, CORNER_L, context));
+            view.setImportantForAccessibility(View.IMPORTANT_FOR_ACCESSIBILITY_NO_HIDE_DESCENDANTS);
+            refresh();
+        }
+
+        void refresh() {
+            view.removeAllViews();
+            for (String tab : order) {
+                if (!isShown(tab)) continue;
+                Drawable glyph = glyph(context, tab);
+                if (glyph == null) continue;
+                ImageView icon = new ImageView(context);
+                icon.setImageDrawable(glyph);
+                icon.setScaleType(ImageView.ScaleType.CENTER);
+                view.addView(icon, new LinearLayout.LayoutParams(0, dp(context, 48), 1f));
+            }
+        }
+
+        /** Whether the live tab bar can be read, so {@link #barOrder} is Instagram's own. */
+        static boolean isLive(Context context) {
+            if (!(context instanceof Activity)) return false;
+            int barId = Hiders.resolveId(context, "tab_bar");
+            return barId != 0 && ((Activity) context).findViewById(barId) instanceof ViewGroup;
+        }
+
+        /** The tab ids in the live bar's order, or a fixed order outside the app. */
+        static List<String> barOrder(Context context) {
+            List<String> out = new ArrayList<>();
+            if (context instanceof Activity) {
+                int barId = Hiders.resolveId(context, "tab_bar");
+                View bar = barId == 0 ? null : ((Activity) context).findViewById(barId);
+                if (bar instanceof ViewGroup) {
+                    ViewGroup group = (ViewGroup) bar;
+                    for (int i = 0; i < group.getChildCount(); i++) {
+                        int id = group.getChildAt(i).getId();
+                        if (id == View.NO_ID) continue;
+                        try {
+                            out.add(context.getResources().getResourceEntryName(id));
+                        } catch (Throwable ignored) {
+                            // unnamed child: not a tab
+                        }
+                    }
+                }
+            }
+            if (out.isEmpty()) {
+                for (String tab : DEFAULT_ORDER) out.add(tab);
+            }
+            return out;
+        }
+
+        static boolean isShown(String tab) {
+            String key = Config.navKeyForTab(tab);
+            return key != null && Config.isNavTabShown(key);
+        }
+
+        static String label(String tab) {
+            switch (tab) {
+                case "feed_tab": return "Home";
+                case "clips_tab": return "Reels";
+                case "direct_tab": return "Messages";
+                case "search_tab": return "Search";
+                case "creation_tab": return "Create";
+                case "profile_tab": return "Profile";
+                default: return tab;
+            }
+        }
+
+        private static Drawable glyph(Context context, String tab) {
+            switch (tab) {
+                case "feed_tab": return igIcon(context, ON_SURFACE, "instagram_home_pano_filled_24",
+                        "instagram_home_pano_outline_24");
+                case "clips_tab": return igIcon(context, ON_SURFACE, "instagram_reels_pano_outline_24");
+                case "direct_tab": return igIcon(context, ON_SURFACE, "instagram_direct_pano_outline_24",
+                        "instagram_direct_outline_24");
+                case "search_tab": return igIcon(context, ON_SURFACE, "instagram_search_pano_outline_24");
+                case "creation_tab": return igIcon(context, ON_SURFACE, "instagram_add_pano_outline_24",
+                        "instagram_add_outline_24");
+                case "profile_tab": return igIcon(context, ON_SURFACE, "instagram_user_pano_outline_24");
+                default: return null;
+            }
+        }
+    }
+
+    /**
+     * One of Instagram's own icons, by resource name, tinted for our surface: the
+     * first of {@code names} that exists, or null. Nothing is bundled: the icon
+     * set is the host app's, so it looks like the rest of Instagram, and a name
+     * that disappears in a later build only drops the icon.
+     */
+    static Drawable igIcon(Context context, int tint, String... names) {
+        android.content.res.Resources res = context.getResources();
+        for (String name : names) {
+            int id = res.getIdentifier(name, "drawable", context.getPackageName());
+            if (id == 0) id = res.getIdentifier(name, "drawable", "com.instagram.android");
+            if (id == 0) continue;
+            try {
+                Drawable drawable = context.getDrawable(id);
+                if (drawable == null) continue;
+                drawable = drawable.mutate();
+                drawable.setTint(tint);
+                return drawable;
+            } catch (Throwable ignored) {
+                // not loadable in this build; try the next name
+            }
+        }
+        return null;
+    }
+
+    private static GradientDrawable oval(int color) {
+        GradientDrawable drawable = new GradientDrawable();
+        drawable.setShape(GradientDrawable.OVAL);
+        drawable.setColor(color);
+        return drawable;
+    }
+
+    /** An unlabelled group, for a section page whose title already names it. */
+    private static LinearLayout addGroup(Context context, LinearLayout parent) {
+        LinearLayout group = new LinearLayout(context);
+        group.setOrientation(LinearLayout.VERTICAL);
+        LinearLayout.LayoutParams lp = new LinearLayout.LayoutParams(
                 ViewGroup.LayoutParams.MATCH_PARENT, ViewGroup.LayoutParams.WRAP_CONTENT);
-        actionsLp.setMargins(0, dp(context, 12), 0, 0);
-        root.addView(actions, actionsLp);
-
-        Button done = makeButton(context, "Done", PRIMARY, ON_PRIMARY, true);
-        done.setOnClickListener(v -> {
-            dialog.dismiss();
-            onDone(context);
-        });
-        actions.addView(done, new LinearLayout.LayoutParams(0, ViewGroup.LayoutParams.WRAP_CONTENT, 1f));
-
-        return root;
+        lp.setMargins(0, dp(context, 16), 0, 0);
+        parent.addView(group, lp);
+        return group;
     }
 
     private static LinearLayout.LayoutParams stackedButtonParams(Context context, int topDp) {
@@ -529,11 +1011,29 @@ public final class Settings {
                 () -> CacheCleaner.clearAndRestart(context));
     }
 
+    private static void confirmHardcore(Context context) {
+        if (context == null) return;
+        if (Config.isHardcoreMode()) {
+            Toast.makeText(context, "Permanent lock is already enabled", Toast.LENGTH_LONG).show();
+            return;
+        }
+        showConfirm(context, "Enable permanent lock?",
+                "This is permanent for this installation. You will no longer be able to "
+                        + "re-enable Home feed, Explore, Reels or Stories without reinstalling the app.",
+                "Enable lock", ERROR, ON_ERROR,
+                () -> {
+                    Config.enableHardcoreMode();
+                    Toast.makeText(context,
+                            "Permanent lock enabled. Reinstall the app to unlock content.",
+                            Toast.LENGTH_LONG).show();
+                });
+    }
+
     // --- Confirmation cards ---------------------------------------------------
 
     /**
-     * A centred card with a title, a body and two actions. Used by the restart
-     * prompt, and shaped like {@link UpdateChecker}'s cards.
+     * A centred card with a title, a body and two actions. Shared by the restart
+     * and permanent-lock prompts, and shaped like {@link UpdateChecker}'s cards.
      */
     public static void showConfirm(Context context, String titleText, String bodyText,
                                    String confirmText, int confirmBg, int confirmFg,
@@ -635,11 +1135,16 @@ public final class Settings {
         // are measured, a rotation — all show up as ordinary layout passes.
         frame.getViewTreeObserver().addOnGlobalLayoutListener(() -> {
             int available = frame.getHeight() - frame.getPaddingTop() - frame.getPaddingBottom();
-            if (available <= 0 || card.getHeight() == 0) return;
+            if (available <= 0 || card.getWidth() == 0) return;
             ViewGroup.LayoutParams lp = growable.getLayoutParams();
-            int overflow = card.getHeight() - available;
+            // The card's laid-out height can't tell: it is capped at the space
+            // available, its last children (the buttons) squeezed to fit. Its
+            // natural height is what it would take with no limit.
+            card.measure(View.MeasureSpec.makeMeasureSpec(card.getWidth(), View.MeasureSpec.EXACTLY),
+                    View.MeasureSpec.makeMeasureSpec(0, View.MeasureSpec.UNSPECIFIED));
+            int overflow = card.getMeasuredHeight() - available;
             if (overflow > 0) {
-                int height = Math.max(dp(frame.getContext(), 72), growable.getHeight() - overflow);
+                int height = Math.max(dp(frame.getContext(), 72), growable.getMeasuredHeight() - overflow);
                 if (lp.height != height) {
                     lp.height = height;
                     growable.setLayoutParams(lp);
@@ -754,14 +1259,16 @@ public final class Settings {
                                boolean value, Runnable onChanged) {
         LinearLayout row = makeRow(context, parent, label, supportText(key));
 
-        Switch toggle = new Switch(context);
+        ExpressiveSwitch toggle = new ExpressiveSwitch(context);
         toggle.setChecked(value);
-        toggle.setShowText(false);
-        // The platform track drawable is alpha-blended, so tinting it white gives
-        // the grey M3 track; the thumb is what carries the accent.
-        toggle.setTrackTintList(buildStateList(PRIMARY, OUTLINE_VARIANT));
-        toggle.setThumbTintList(buildStateList(PRIMARY, OUTLINE));
+        toggle.setContentDescription(label);
         toggle.setOnCheckedChangeListener((btn, isChecked) -> {
+            // Hardcore: a frozen surface cannot be revealed; snap it back to hidden.
+            if (Config.isHardcoreMode() && Config.isLockable(key)
+                    && !Config.hidesSurface(key, isChecked) && Config.wasHiddenAtBaseline(key)) {
+                btn.setChecked(!isChecked);
+                return;
+            }
             Config.setBlocked(key, isChecked);
             Config.setNeedsRestart();
             if (onChanged != null) onChanged.run();
@@ -770,19 +1277,71 @@ public final class Settings {
         row.setOnClickListener(v -> {
             if (toggle.isEnabled()) toggle.toggle();
         });
+
+        // Freeze rows whose surface is already hidden under the permanent lock.
+        if (Config.isLockable(key) && Config.isHardcoreMode() && Config.hidesSurface(key, value)) {
+            toggle.setEnabled(false);
+            row.setEnabled(false);
+            row.setClickable(false);
+            row.setAlpha(0.38f);
+        }
     }
 
+    /**
+     * The line under a row's label: what turning this on actually does to the app,
+     * said in plain words. Every key gets its own line — there is deliberately no
+     * generic fallback, so a toggle somebody adds and forgets to describe renders
+     * with no second line instead of quietly inheriting a vague one.
+     */
     private static String supportText(String key) {
-        if (key.equals("auto_update")) return "Check GitLab for a new version on launch.";
-        if (key.equals("block_ads")) return "Block sponsored ads across Instagram.";
-        if (key.equals("limit_following_feed")) return "Show only accounts you follow (needs the feed unblocked).";
-        if (key.equals("hide_toasts")) return "Hide every Instagram popup, including “couldn’t refresh feed”.";
-        if (key.equals("force_sdr")) return "Keep blacks deep by stopping Instagram forcing HDR on the UI.";
-        if (key.equals("allow_screenshots")) return "Screenshot view-once media and DMs; the sender is not notified.";
-        if (key.equals("block_friends_lane")) return "Hide the Friends tab and its avatars in the Reels header.";
-        if (key.equals("block_notifications")) return "Hide the notifications (heart) button in the feed header.";
-        if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
-        return "Hide this surface in Instagram.";
+        switch (key) {
+            case "block_feed":
+                return "Nothing loads in the Home tab. The tab itself stays.";
+            case "block_explore":
+                return "Nothing loads in the Explore tab.";
+            case "block_reels":
+                return "Nothing loads in Reels. To take the Reels icon off the bottom bar as well, use Navigation bar.";
+            case "block_stories":
+                return "Nothing loads in Stories. Ones you've already opened stay until you restart.";
+            case "block_suggested":
+                return "Hide the accounts Instagram suggests to you.";
+            case "block_ads":
+                return "Hide sponsored posts, including the ones that appear in the feed itself.";
+            case "block_friends_lane":
+                return "Hide the row of friend avatars at the top of a reel.";
+            case "block_instants":
+                return "Hide the + button and the quick-snap preview in direct messages.";
+            case "block_notes":
+                return "Hide the notes bar above your direct messages.";
+            case "block_notifications":
+                return "Hide the heart button at the top of the feed.";
+            case "limit_following_feed":
+                return "Show only posts from accounts you follow, in order. Turn off Home feed first.";
+            case "hide_toasts":
+                return "Hide Instagram's popups, like “couldn't refresh feed”.";
+            case "force_sdr":
+                return "Stop Instagram turning on HDR, which makes the dark UI look washed out.";
+            case "allow_screenshots":
+                return "Let you screenshot view-once photos and disappearing messages.";
+            case "quoicouview_mode":
+                return "Messages become the main page, with stories on top. Home is turned off.";
+            case "auto_update":
+                return "Check for new Unhooked versions when you open the app.";
+            case "nav_show_home":
+                return "Show the home icon in the bottom bar. When hidden, long-press the first remaining icon to open these settings.";
+            case "nav_show_search":
+                return "Show the search icon in the bottom bar.";
+            case "nav_show_reels":
+                return "Show the Reels icon in the bottom bar.";
+            case "nav_show_create":
+                return "Show the create icon in the bottom bar.";
+            case "nav_show_direct":
+                return "Show the messages icon in the bottom bar.";
+            case "nav_show_profile":
+                return "Show the profile icon in the bottom bar.";
+            default:
+                return null;
+        }
     }
 
     // --- Landing page picker --------------------------------------------------
@@ -821,7 +1380,8 @@ public final class Settings {
         }
 
         // A surface whose nav icon is hidden is not a landing page you can choose:
-        // it would hand back exactly what was hidden.
+        // it would hand back exactly what was hidden, and under the permanent lock
+        // the picker was the one way left to reach a frozen surface (issue #116).
         landingSync[0] = () -> {
             String current = Config.getLandingPage();
             for (int i = 0; i < LANDING_VALUES.length; i++) {
@@ -829,7 +1389,7 @@ public final class Settings {
                 View row = rows.get(i);
                 row.setEnabled(available);
                 row.setAlpha(available ? 1f : 0.38f);
-                marks.get(i).setChecked(LANDING_VALUES[i].equals(current));
+                marks.get(i).setChecked(available && LANDING_VALUES[i].equals(current));
             }
         };
         landingSync[0].run();

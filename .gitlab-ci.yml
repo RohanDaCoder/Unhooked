@@ -27,7 +27,7 @@ stages:
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
   ANDROID_HOME: "/opt/android-sdk"
-  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/446.0.0.49.77/base-446.xapk"
+  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/454.0.0.13.77/base-454.apkm"
 
 cache:
   key: unhooked-main
@@ -86,13 +86,12 @@ build-classic:
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
       fi
-    # Classic build (replaces stock Instagram).
+    # Classic build (replaces stock Instagram). buildApk fails unless every
+    # patch applies and the applied set matches the patch bundle's own
+    # declared defaults (checkPatches, finalizedBy patchApk — the gate rides
+    # along; no committed expected-list involved).
     - UNHOOKED_OUTPUT_PATH=unhooked-classic.apk ./gradlew buildApk "-Papk=base.xapk" --console=plain
     - cp build/patch-report.json patch-report-classic.json
-    # --- gates: nothing failed AND nothing silently missing (10 patches,
-    # comment-free list so the diff is literal) ---
-    - test "$(jq '.failedPatches | length' patch-report-classic.json)" = "0"
-    - jq -r '.appliedPatches[].name' patch-report-classic.json | sort | diff .gitlab/expected-patches-classic.txt -
     # --- verify: signature + identity ---
     - apksigner verify --print-certs unhooked-classic.apk | tee certs-classic.txt
     - test "$(aapt dump badging unhooked-classic.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android"
@@ -103,6 +102,8 @@ build-classic:
     paths:
       - unhooked-classic.apk
       - patch-report-classic.json
+      # The raw report survives gate failures (the cp above never ran).
+      - build/patch-report.json
       - certs-classic.txt
 
 build-clone:
@@ -117,12 +118,12 @@ build-clone:
       if [ -n "$UNHOOKED_KEYSTORE_B64" ]; then
         echo "$UNHOOKED_KEYSTORE_B64" | base64 -d > unhooked.keystore
       fi
-    # Clone build (installs alongside stock Instagram).
+    # Clone build (installs alongside stock Instagram). Same gate as classic:
+    # buildApk fails unless every patch applies and the applied set matches
+    # the bundle's defaults — with -Pclone passed, the gate itself adds the
+    # opt-in Clone patch to the expectation.
     - UNHOOKED_OUTPUT_PATH=unhooked-clone.apk ./gradlew buildApk "-Papk=base.xapk" -Pclone --console=plain
     - cp build/patch-report.json patch-report-clone.json
-    # --- gates: nothing failed AND nothing silently missing (11 patches) ---
-    - test "$(jq '.failedPatches | length' patch-report-clone.json)" = "0"
-    - jq -r '.appliedPatches[].name' patch-report-clone.json | sort | diff .gitlab/expected-patches-clone.txt -
     # --- verify: signature + identity ---
     - apksigner verify --print-certs unhooked-clone.apk | tee certs-clone.txt
     - test "$(aapt dump badging unhooked-clone.apk | awk -F"'" '/^package:/{print $2}')" = "com.instagram.android.unhooked"
@@ -133,6 +134,8 @@ build-clone:
     paths:
       - unhooked-clone.apk
       - patch-report-clone.json
+      # The raw report survives gate failures (the cp above never ran).
+      - build/patch-report.json
       - certs-clone.txt
 
 publish-release:

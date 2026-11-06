@@ -1,10 +1,39 @@
 # Changelog
 
 All notable changes to Unhooked are documented in this file.
-Entries under Unreleased ship with the next version bump.
+Entries under Unreleased ship with the next version bump — and verbatim in
+the in-app update prompt, so keep them short and plain: one bullet per
+change, no internal jargon.
 
 ## Unreleased
 
+## 1.1.0
+
+### Added
+
+- **Quoicouview mode** (experimental): Messages becomes the main page, with
+  stories on top of the inbox. Turn it on in Settings → Experimental feature.
+- **Permanent lock**: freeze your current setup — only a reinstall unlocks it.
+- **Redesigned settings**: an overview with one row per section, and a
+  Navigation bar page that previews the bar live as you flip switches.
+- **Hide the Home icon** (Settings → Navigation bar); Back from the first tab
+  then leaves the app instead of opening the hidden feed.
+- New Material 3 Expressive switches throughout the settings.
+- No more suggested accounts in the story tray.
+
+### Changed
+
+- **Based on Instagram 454.0.0.13.77** (was 446).
+- Every settings toggle now has a short, specific description.
+- The build now fails if any patch fails to apply, so a broken build can't
+  ship silently.
+
+### Fixed
+
+- **Ad blocking works again** on current Instagram.
+- The scroll fade on the settings and update pages no longer floats above
+  the buttons.
+- A toggle without a description now shows none, instead of a vague line.
 ## 1.0.3
 
 ### Added

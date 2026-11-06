@@ -41,7 +41,7 @@ extensions/extension/src/main/java/com/unhooked/extension/UnhookedVersion.java
 # OS
 .DS_Store
 .dexloom-ws
-dexloom-1.1.0-universal.jar
+dexloom-*.jar
 
 # Local pipeline secrets (see .env.example)
 .env

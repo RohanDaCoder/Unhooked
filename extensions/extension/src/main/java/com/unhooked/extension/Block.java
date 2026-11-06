@@ -142,6 +142,8 @@ public final class Block {
      */
     public static String replaceFeedItemType(String key) {
         if (key == null) return null;
+        // A new unit starts: whatever media it wraps is parsed right after this.
+        MEDIA_IS_AD.get()[0] = false;
         boolean drop = (Config.isAdsBlocked() && equalsAny(key, AD_FEED_UNITS))
                 || (Config.isSuggestedBlocked() && equalsAny(key, SUGGESTED_FEED_UNITS));
         // Debug builds only (see DebugBridge): shows every unit type the timeline
@@ -151,6 +153,85 @@ public final class Block {
             Log.i("FeurFeed", (drop ? "drop " : "keep ") + key);
         }
         return drop ? INVALID_FEED_TYPE : key;
+    }
+
+    /**
+     * JSON fields only a sponsored media carries. A sponsored post reaches the
+     * timeline in the same {@code media_or_ad} unit as an organic one, so the
+     * unit type cannot tell them apart; these fields can. {@code injected} holds
+     * the "Sponsored" label and is on every ad, including the "ad break" ones;
+     * {@code dr_ad_type} (direct-response ads) backs it up should it be renamed.
+     * Organic posts carry other ad-sounding fields ({@code should_request_ads},
+     * {@code is_paid_partnership}), which is why the list is this narrow.
+     */
+    private static final String[] AD_MEDIA_FIELDS = {
+            "injected",
+            "dr_ad_type",
+    };
+
+    /**
+     * Whether the media being parsed on this thread is sponsored. Reset by
+     * {@link #replaceFeedItemType} as each feed unit starts, set by
+     * {@link #onMediaField}, read by {@link #filterFeedMedia} once the unit's
+     * media is built. Parsing is synchronous on one thread, so a ThreadLocal
+     * keeps concurrent feed and non-feed parses apart.
+     */
+    private static final ThreadLocal<boolean[]> MEDIA_IS_AD = new ThreadLocal<boolean[]>() {
+        @Override protected boolean[] initialValue() { return new boolean[1]; }
+    };
+
+    /**
+     * Media parse hook: called with every JSON field name of every media Instagram
+     * parses, carousel children included (a child of an ad is an ad too).
+     */
+    public static void onMediaField(String key) {
+        if (key != null && equalsAny(key, AD_MEDIA_FIELDS)) MEDIA_IS_AD.get()[0] = true;
+    }
+
+    /**
+     * Feed-unit hook: called with the media a feed unit wraps, once parsed.
+     * Returns null for a sponsored one when ads are blocked, which leaves the
+     * unit empty — the same state as an unknown unit type, which Instagram drops.
+     */
+    public static Object filterFeedMedia(Object media) {
+        boolean drop = media != null && MEDIA_IS_AD.get()[0] && Config.isAdsBlocked();
+        if (DebugBridge.isNetworkTraceEnabled()) {
+            Log.i("FeurFeed", (drop ? "drop " : "keep ")
+                    + (MEDIA_IS_AD.get()[0] ? "sponsored media" : "media"));
+        }
+        return drop ? null : media;
+    }
+
+    /**
+     * Name of the story-tray model's getter for {@code reel_type}. Obfuscated and
+     * renamed every release, so the patch rewrites this body with the name it
+     * finds in the model's serializer.
+     */
+    static String trayEntryTypeGetter() {
+        return "";
+    }
+
+    /**
+     * Story-tray hook: called with every entry Instagram's tray parser builds.
+     * Returns null for a suggested account ({@code reel_type} "suggested_user")
+     * when suggestions are blocked; the tray loop already skips entries that
+     * parse to null, so the suggestion never reaches the tray. These come inside
+     * the tray response itself, so the network block cannot catch them.
+     */
+    public static Object filterTrayEntry(Object entry) {
+        if (entry == null || !Config.isSuggestedBlocked()) return entry;
+        try {
+            String getter = trayEntryTypeGetter();
+            if (getter.isEmpty()) return entry;
+            Object type = entry.getClass().getMethod(getter).invoke(entry);
+            boolean drop = "suggested_user".equals(String.valueOf(type));
+            if (DebugBridge.isNetworkTraceEnabled()) {
+                Log.i("FeurTray", (drop ? "drop " : "keep ") + type);
+            }
+            return drop ? null : entry;
+        } catch (Throwable t) {
+            return entry; // never break the tray over a shape we did not expect
+        }
     }
 
     private static boolean equalsAny(String value, String[] options) {
