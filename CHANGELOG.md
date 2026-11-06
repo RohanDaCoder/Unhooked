@@ -1,93 +1,39 @@
 # Changelog
 
 All notable changes to Unhooked are documented in this file.
-Entries under Unreleased ship with the next version bump.
+Entries under Unreleased ship with the next version bump — and verbatim in
+the in-app update prompt, so keep them short and plain: one bullet per
+change, no internal jargon.
 
 ## Unreleased
 
+## 1.1.0
+
 ### Added
 
-- **Quoicouview mode** (ported from upstream; experimental, off by default,
-  `quoicouview_mode`). Messages becomes the app's main page with the stories
-  tray on top of the inbox — under its search bar — and Home is turned off
-  (the Home and Messages toggles and the landing page are greyed out while it
-  is on). The tray is Instagram's own, adopted as a row of the inbox list, so
-  it scrolls, recycles and keeps its live content; stories open from there
-  the way they do from Home, the viewer stacked over the inbox; the
-  notifications button moves to the inbox header; and the story camera opens
-  from the tray's "Your story" (+) or with a swipe to the right, as from Home.
-  A one-time card presents the mode after this update, with a screenshot the
-  *Quoicouview assets* patch adds to the APK. The switch is the first row of
-  the settings overview, under "Experimental feature"; it is unavailable when
-  the permanent lock froze Messages hidden.
-- **Permanent lock** (ported from upstream). The settings overview gains a
-  *Permanent lock* pill next to Done: once enabled, every surface hidden at
-  that moment stays hidden for the installation — only a reinstall unlocks,
-  while tightening blocks stays possible. The lock freezes the content blocks
-  and the navigation-bar icons, and the landing picker can no longer hand
-  back a frozen surface.
-- **Settings open on an overview of sections** (ported from upstream). One row
-  per area (Blocked surfaces, Navigation bar, Feed, Landing page, Display and
-  popups, Privacy, Updates, Support), each with Instagram's own outline icon,
-  a one-line summary of its state and a chevron; tapping swaps the column for
-  that section's page in the same window, with a back arrow and the pinned
-  action row kept, and Back returns to the overview. The Navigation bar page
-  previews the bar in its live order, redrawn as the switches move, and greys
-  out toggles for tabs the running Instagram build does not have. Unhooked's
-  Privacy page keeps the Allow screenshots toggle.
-- **Material 3 Expressive switches** (ported from upstream). Settings rows now
-  use a switch drawn in code — a squircle track whose corners tighten as it
-  fills, a thumb that grows into a rounded square when pressed — with
-  selected, pressed and disabled states.
-- **Hide the Home icon** (ported from upstream issue #127). A Home row joins
-  the Navigation bar section. Long-pressing a tab is the only way into these
-  settings, so Home only goes once another icon stays on the bar to take the
-  gesture over — hiding every icon keeps Home. With Home hidden, Back from the
-  first tab shown leaves the app instead of walking onto the hidden feed, and
-  the cold-start landing opens the first landable tab.
-- **Suggested accounts are dropped from the story tray** (ported from
-  upstream). Instagram mixes suggestions into the home story tray as ordinary
-  `reel_type: suggested_user` entries of the tray response itself, so the
-  network block on `/discover/…` never saw them; they are now filtered at
-  parse time, on the Suggested accounts toggle.
+- **Quoicouview mode** (experimental): Messages becomes the main page, with
+  stories on top of the inbox. Turn it on in Settings → Experimental feature.
+- **Permanent lock**: freeze your current setup — only a reinstall unlocks it.
+- **Redesigned settings**: an overview with one row per section, and a
+  Navigation bar page that previews the bar live as you flip switches.
+- **Hide the Home icon** (Settings → Navigation bar); Back from the first tab
+  then leaves the app instead of opening the hidden feed.
+- New Material 3 Expressive switches throughout the settings.
+- No more suggested accounts in the story tray.
 
 ### Changed
 
-- **The pinned stock base is now Instagram 454.0.0.13.77** (was 446.0.0.49.77).
-  `fetchBase`, CI's `INPUT_APK_URL` and the registry pin all moved; upload the
-  `base-454.apkm` bundle to the package registry before the next CI run.
-- **Every settings toggle now says what it does.** The descriptions under the
-  toggles were rewritten in plain words, and each one is specific to its own
-  switch: seven of the ten "Blocked surfaces" rows shared a single line reading
-  "Hide this surface in Instagram." The navigation-bar rows each name their own
-  icon. Descriptions now state what you will actually see — that the Home tab
-  stays but loads nothing, that hiding the Reels *icon* is a separate setting
-  under Navigation bar, that Stories you already opened survive until a restart
-  — instead of how the patch works internally. "Force dark" drops the
-  "(disable HDR)" suffix, "Friends in Reels" is now "Friends row in Reels", and
-  "Notifications button" is now "Heart button".
+- **Based on Instagram 454.0.0.13.77** (was 446).
+- Every settings toggle now has a short, specific description.
+- The build now fails if any patch fails to apply, so a broken build can't
+  ship silently.
 
 ### Fixed
 
-- **Ad blocking works on current Instagram again** (ported from upstream).
-  Sponsored posts reach the feed wrapped in the same `media_or_ad` unit as
-  organic ones, so the unit type cannot tell them apart; the media's own JSON
-  fields (`injected`, `dr_ad_type`) now can. Also adapts the sponsored-media
-  hooks to Instagram 452–454 (the parser moved into a codec, then back inline;
-  a null check now sits between the field-name load and its hash dispatch) and
-  the network block to 451's `startRequest` becoming a Systrace wrapper.
-- **The scroll fade on the settings and update pages is flush with the action
-  row** (ported from upstream): the fade no longer floats above the buttons.
-- **A toggle with no description now shows none, instead of a vague one.** The
-  generic catch-all line is gone, so a switch added later without a description
-  of its own renders with only its label rather than silently claiming to hide
-  something unspecified.
-
-### Docs
-
-- The feature table documents the **Friends row in Reels**, **Heart button** and
-  **Instagram popups** toggles, which shipped without ever being listed.
-
+- **Ad blocking works again** on current Instagram.
+- The scroll fade on the settings and update pages no longer floats above
+  the buttons.
+- A toggle without a description now shows none, instead of a vague line.
 ## 1.0.3
 
 ### Added

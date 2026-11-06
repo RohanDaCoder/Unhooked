@@ -58,12 +58,14 @@ you inspect the patches and avoid trusting a prebuilt APK.
 
 ## Verifying the result
 
-`./gradlew buildApk` prints the patch report and writes it to
-`build/patch-report.json`. Check that everything is under `appliedPatches`,
-that `failedPatches` is empty, and that the applied names match
-`.gitlab/expected-patches.txt` (the clone flavor applies the same list plus
-the `Clone` patch). A `BUILD SUCCESSFUL` line alone says nothing about whether
-patches actually applied.
+`./gradlew buildApk` gates itself: the `checkPatches` task rides along with
+`patchApk` and fails the build unless every patch applied and the applied set
+matches what the freshly built patch bundle itself declares — its defaults,
+plus the opt-ins your flags enabled (`Clone` for `-Pclone`, `Debug bridge` for
+`-Pdebug`). There is no expected-list file to consult: `BUILD SUCCESSFUL`
+means the patch set matched. The report lands in `build/patch-report.json`
+(`appliedPatches` / `failedPatches`), and `./gradlew checkPatches` re-gates an
+existing report — pass the flags it was built with.
 
 On device, blocked requests surface as `java.io.IOException: Blocked by
 Unhooked` in logcat:
@@ -91,10 +93,11 @@ has three jobs: `build-classic` + `build-clone` in parallel, then
 `publish-release`.
 
 Each build job starts with preflight (validates the stock bundle and the
-required variables, failing fast), builds its flavor APK, then gates on
-`failedPatches == []` **and** a diff of the applied list against
-`.gitlab/expected-patches.txt` (the clone job expects the same list plus
-`Clone`) — a silently missing patch fails the job. It finishes by verifying
+required variables, failing fast), builds its flavor APK — which gates itself
+on `failedPatches == []` and a diff of the applied set against the freshly
+built bundle's own declared defaults plus the flag opt-ins (`checkPatches`,
+finalized by `patchApk`; the clone job expects the defaults plus `Clone`) — a
+silently missing patch fails the job. It finishes by verifying
 the signature and asserting the package identity
 (`com.instagram.android` vs `com.instagram.android.unhooked`).
 

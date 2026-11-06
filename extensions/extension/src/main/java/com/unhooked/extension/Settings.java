@@ -782,10 +782,6 @@ public final class Settings {
         source.setBackground(outlined(context, OUTLINE_VARIANT));
         source.setOnClickListener(v -> openUrl(context, "https://gitlab.com/RohanDaCoder/Unhooked"));
         column.addView(source, stackedButtonParams(context, 16));
-
-        Button author = makeButton(context, "Support the original author", SURFACE_CONTAINER_HIGH, ON_SURFACE, true);
-        author.setOnClickListener(v -> openUrl(context, "https://github.com/sponsors/jean-voila"));
-        column.addView(author, stackedButtonParams(context, 10));
     }
 
     private static String displaySummary() {
