@@ -32,7 +32,7 @@ build/
 .kotlin/
 local.properties
 # Generated version stamp (recreated by generateUnhookedVersion every build)
-extensions/extension/src/main/java/com/unhooked/extension/UnhookedVersion.java
+extensions/extension/src/main/java/com/feurstagram/extension/UnhookedVersion.java
 
 # IDE (share run configurations, ignore the rest)
 .idea/*
