@@ -31,7 +31,7 @@ public final class StoriesTrayRow {
 
         /** Identity of the row for the adapter's list diffing. */
         public Object getKey() {
-            return "unhooked_stories_tray";
+            return "feurstagram_stories_tray";
         }
 
         /** The row's content never changes from the list's point of view: the tray updates itself. */

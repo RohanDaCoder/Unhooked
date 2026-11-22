@@ -40,8 +40,14 @@ extensions/extension/src/main/java/com/unhooked/extension/UnhookedVersion.java
 
 # OS
 .DS_Store
+
+# Dexloom fingerprint research (local only)
 .dexloom-ws
 dexloom-*.jar
 
 # Local pipeline secrets (see .env.example)
 .env
+
+# Python test caches
+__pycache__/
+*.py[cod]

@@ -3,14 +3,12 @@ package com.unhooked.extension;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.util.HashMap;
-
 /**
  * Runtime configuration backed by SharedPreferences ("unhooked_prefs").
  *
  * Independent block toggles (feed, explore, reels, stories, instants, notes,
- * suggested, ads) plus the permanent "hardcore" lock. The application Context
- * is resolved reflectively so no patched class needs to hand us one.
+ * suggested, ads). The application Context is resolved reflectively so no
+ * patched class needs to hand us one.
  */
 public final class Config {
 
@@ -22,14 +20,6 @@ public final class Config {
      * Cleared implicitly on every process start.
      */
     private static boolean sNeedsRestart;
-
-    /**
-     * Snapshot of every block_* toggle captured when the settings page opens.
-     * The permanent lock only freezes surfaces that were already blocked at this
-     * snapshot, so a mis-toggle made during the current session can still be
-     * undone until Done restarts the app. Null until captureBaseline() runs.
-     */
-    private static HashMap<String, Boolean> sBaseline;
 
     private Config() {}
 
@@ -54,20 +44,73 @@ public final class Config {
         return prefs == null ? defaultValue : prefs.getBoolean(key, defaultValue);
     }
 
+    /** A surface's stored block, with its default: what the settings show and save. */
+    public static boolean storedBlocked(String key) {
+        String def = SURFACE_DEFAULTS.get(key);
+        return getBlocked(key, def == null || Boolean.parseBoolean(def));
+    }
+
+    /** What the app applies: the stored block, unless the unlock timer opens it now. */
+    private static boolean effective(String key) {
+        return storedBlocked(key) && !Timer.unlocks(key);
+    }
+
+    private static final java.util.Map<String, String> SURFACE_DEFAULTS = new java.util.HashMap<>();
+    static {
+        String[][] defaults = {
+                {"block_feed", "true"},
+                {"block_explore", "true"},
+                {"block_reels", "true"},
+                {"block_friends_lane", "true"},
+                {"block_stories", "false"},
+                {"block_instants", "true"},
+                {"block_notes", "true"},
+                {"block_suggested", "true"},
+                {"block_ads", "true"},
+                {"block_comments", "false"},
+                {"block_notifications", "false"},
+                {"block_threads", "true"},
+        };
+        for (String[] entry : defaults) SURFACE_DEFAULTS.put(entry[0], entry[1]);
+    }
+
+    static long getLong(String key, long def) {
+        SharedPreferences prefs = prefs();
+        try {
+            return prefs == null ? def : prefs.getLong(key, def);
+        } catch (ClassCastException e) {
+            return def;
+        }
+    }
+
+    static void putLong(String key, long value) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putLong(key, value).apply();
+    }
+
+    static String getString(String key, String def) {
+        SharedPreferences prefs = prefs();
+        try {
+            return prefs == null ? def : prefs.getString(key, def);
+        } catch (ClassCastException e) {
+            return def;
+        }
+    }
+
+    static void putString(String key, String value) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putString(key, value).apply();
+    }
+
+    /** A plain boolean write, outside the permanent lock's surface rules. */
+    static void putBoolean(String key, boolean value) {
+        SharedPreferences prefs = prefs();
+        if (prefs != null) prefs.edit().putBoolean(key, value).apply();
+    }
+
     public static void setBlocked(String key, boolean value) {
         SharedPreferences prefs = prefs();
         if (prefs == null) return;
-        // Hardcore lock only forbids *revealing* a surface. Hiding one is always
-        // allowed so users can still tighten. A surface may be revealed only when
-        // it was already visible at the start of the current settings session
-        // (undo of a mis-toggle); one hidden at session open stays frozen until a
-        // reinstall.
-        if (isHardcoreMode()
-                && isLockable(key)
-                && !hidesSurface(key, value)
-                && wasHiddenAtBaseline(key)) {
-            return;
-        }
         prefs.edit().putBoolean(key, value).apply();
     }
 
@@ -76,16 +119,27 @@ public final class Config {
      * navigation-bar icons. The nav icons are cosmetic, but hiding one is how
      * people cut off a surface they keep falling back into (the Direct tab's
      * search behaves like Explore), so leaving them freely re-enabled defeated
-     * the lock — issue #93.
+     * the lock — issue #93. "Following feed only" counts too: it is what keeps the
+     * ranked feed away for people who keep the feed itself — issue #150.
      */
     public static boolean isLockable(String key) {
-        return key != null && (key.startsWith("block_") || key.startsWith("nav_show_"));
+        if (key == null || UNLOCKED_KEYS.contains(key)) return false;
+        return key.startsWith("block_") || key.startsWith("nav_show_")
+                || "limit_following_feed".equals(key);
     }
 
     /**
+     * block_* keys the permanent lock leaves alone: privacy choices, not
+     * distractions, so they stay reversible.
+     */
+    private static final java.util.Set<String> UNLOCKED_KEYS = new java.util.HashSet<>(
+            java.util.Arrays.asList("block_telemetry"));
+
+    /**
      * Whether this value leaves the surface hidden. The two families store
-     * opposite polarities: {@code block_*} is true when hidden, {@code nav_show_*}
-     * is true when shown.
+     * opposite polarities: {@code block_*} (and {@code limit_following_feed}, which
+     * hides the ranked feed) is true when hidden, {@code nav_show_*} is true when
+     * shown.
      */
     public static boolean hidesSurface(String key, boolean value) {
         if (key == null) return false;
@@ -115,6 +169,9 @@ public final class Config {
      */
     public static boolean isForceSdr() { return getBlocked("force_sdr", true); }
 
+    /** Whether Instagram is drawn in grayscale ({@link Grayscale}). Off by default; not a surface. */
+    public static boolean isGrayscale() { return getBlocked("grayscale", false); }
+
     /**
      * Whether screenshots and screen recordings are allowed in sensitive
      * surfaces (view-once media, disappearing DMs): FLAG_SECURE is stripped
@@ -127,15 +184,16 @@ public final class Config {
 
     /**
      * Whether the home feed is restricted to accounts you follow (chronological
-     * "Following" feed) instead of the recommended feed. Off by default.
+     * "Following" feed) instead of the recommended feed. Off by default. The
+     * permanent lock freezes it once it is on (see {@link #isLockable}).
      */
     public static boolean isFollowingFeedOnly() {
         return getBlocked("limit_following_feed", false);
     }
 
-    public static boolean isFeedBlocked()      { return getBlocked("block_feed", true); }
-    public static boolean isExploreBlocked()   { return getBlocked("block_explore", true); }
-    public static boolean isReelsBlocked()     { return getBlocked("block_reels", true); }
+    public static boolean isFeedBlocked()      { return effective("block_feed"); }
+    public static boolean isExploreBlocked()   { return effective("block_explore"); }
+    public static boolean isReelsBlocked()     { return effective("block_reels"); }
     /**
      * Whether the "Friends" tab and its avatar facepile are hidden from the Reels
      * viewer's header. On by default: Instagram gates that entry point behind a
@@ -143,19 +201,32 @@ public final class Config {
      * reachable from an internal developer menu, so the only way out is to drop
      * it from the view tree — issue #94.
      */
-    public static boolean isFriendsLaneBlocked() { return getBlocked("block_friends_lane", true); }
-    public static boolean isStoriesBlocked()   { return getBlocked("block_stories", false); }
-    public static boolean isInstantsBlocked()  { return getBlocked("block_instants", true); }
-    public static boolean isNotesBlocked()     { return getBlocked("block_notes", true); }
-    public static boolean isSuggestedBlocked() { return getBlocked("block_suggested", true); }
-    public static boolean isAdsBlocked()       { return getBlocked("block_ads", true); }
+    public static boolean isFriendsLaneBlocked() { return effective("block_friends_lane"); }
+    public static boolean isStoriesBlocked()   { return effective("block_stories"); }
+    public static boolean isInstantsBlocked()  { return effective("block_instants"); }
+    public static boolean isNotesBlocked()     { return effective("block_notes"); }
+    public static boolean isSuggestedBlocked() { return effective("block_suggested"); }
+    public static boolean isAdsBlocked()       { return effective("block_ads"); }
+    /** Comment buttons, counts and lists ({@link Comments}). Off by default. */
+    public static boolean isCommentsBlocked()  { return effective("block_comments"); }
+
+    /**
+     * Whether Instagram's analytics uploads are cancelled ({@link Block#onRequest}).
+     * On by default, for new installs and for updates alike (the key was never
+     * stored before). Not a surface: the permanent lock never freezes it, so it can
+     * always be turned back off.
+     */
+    public static boolean isTelemetryBlocked() { return getBlocked("block_telemetry", true); }
 
     /**
      * Whether the notifications ("heart") button in the feed header is hidden.
      * Off by default: it's an opt-in distraction cut, and people expect their
      * notifications entry-point to still be there after an update.
      */
-    public static boolean isNotificationsButtonBlocked() { return getBlocked("block_notifications", false); }
+    public static boolean isNotificationsButtonBlocked() { return effective("block_notifications"); }
+
+    /** Whether the Threads button in the profile header is hidden. On by default. */
+    public static boolean isThreadsButtonBlocked() { return effective("block_threads"); }
 
     /**
      * Whether Instagram's popups (its own toasts: "Couldn't refresh feed",
@@ -175,11 +246,10 @@ public final class Config {
     public static boolean isReelsTabShown() { return getBlocked("nav_show_reels", false); }
 
     /**
-     * Whether the Home icon is on the bar (upstream issue #127). Long-pressing a
-     * tab is the only way into the settings: with Home hidden the gesture moves
-     * to the first icon left on the bar, so Home only goes once another icon is
-     * there to take it over — hiding every icon keeps Home, or the settings would
-     * be unreachable.
+     * Whether the Home icon is on the bar (issue #127). Long-pressing a tab is the
+     * only way into the settings: with Home hidden the gesture moves to the first
+     * icon left on the bar, so Home only goes once another icon is there to take
+     * it over — hiding every icon keeps Home, or the settings would be unreachable.
      */
     public static boolean isHomeTabShown() {
         if (isQuoicouviewEnabled()) return false; // Messages, always shown, takes over
@@ -235,6 +305,10 @@ public final class Config {
 
     /** Whether the bottom-bar icon for a {@code nav_show_*} key is currently shown. */
     public static boolean isNavTabShown(String navKey) {
+        // A running unlock session also brings back the icon of what it opens.
+        if ("nav_show_reels".equals(navKey) && Timer.unlocks("block_reels")) return true;
+        if ("nav_show_search".equals(navKey) && Timer.unlocks("block_explore")) return true;
+        if ("nav_show_home".equals(navKey) && Timer.unlocks("block_feed") && !isQuoicouviewEnabled()) return true;
         if ("nav_show_home".equals(navKey)) return isHomeTabShown();
         if ("nav_show_direct".equals(navKey) && isQuoicouviewEnabled()) return true;
         return getBlocked(navKey, navDefault(navKey));
@@ -242,7 +316,8 @@ public final class Config {
 
     /** The {@code nav_show_*} key behind a bottom-bar tab's resource name, or null. */
     public static String navKeyForTab(String tab) {
-        switch (tab == null ? "" : tab) {
+        if (tab == null) return null;
+        switch (tab) {
             case "feed_tab": return "nav_show_home";
             case "search_tab": return "nav_show_search";
             case "clips_tab": return "nav_show_reels";
@@ -267,10 +342,8 @@ public final class Config {
 
     /**
      * Whether a surface may be used as the landing page. Landing on a tab that was
-     * hidden from the bottom bar would hand back the very surface the user removed
-     * — and under the permanent lock it was a way around a frozen toggle, since the
-     * landing picker was never locked (issue #116). So a hidden tab is not a
-     * candidate, lock or no lock.
+     * hidden from the bottom bar would hand back the very surface the user removed,
+     * so a hidden tab is not a candidate.
      */
     public static boolean isLandingAvailable(String landing) {
         if (isQuoicouviewEnabled()) return "direct".equals(landing);
@@ -278,9 +351,52 @@ public final class Config {
         return navKey == null || isNavTabShown(navKey);
     }
 
+    /** Snapshot every lockable toggle's current value for the permanent lock. */
+    public static void captureBaseline() {
+        HashMap<String, Boolean> baseline = new HashMap<>();
+        baseline.put("block_feed", storedBlocked("block_feed"));
+        baseline.put("block_explore", storedBlocked("block_explore"));
+        baseline.put("block_reels", storedBlocked("block_reels"));
+        baseline.put("block_friends_lane", storedBlocked("block_friends_lane"));
+        baseline.put("block_stories", storedBlocked("block_stories"));
+        baseline.put("block_instants", storedBlocked("block_instants"));
+        baseline.put("block_notes", storedBlocked("block_notes"));
+        baseline.put("block_suggested", storedBlocked("block_suggested"));
+        baseline.put("block_ads", storedBlocked("block_ads"));
+        baseline.put("block_comments", storedBlocked("block_comments"));
+        baseline.put("limit_following_feed", isFollowingFeedOnly());
+        for (String key : NAV_KEYS) {
+            baseline.put(key, getBlocked(key, navDefault(key)));
+        }
+        sBaseline = baseline;
+    }
+
+    /**
+     * True if the given key's surface was already hidden at the start of the
+     * current settings session. Falls back to the live persisted value when no
+     * baseline was captured (calls outside the settings page).
+     */
+    public static boolean wasHiddenAtBaseline(String key) {
+        Boolean captured = sBaseline == null ? null : sBaseline.get(key);
+        boolean value = captured != null ? captured : getBlocked(key, lockableDefault(key));
+        return hidesSurface(key, value);
+    }
+
+    /**
+     * Default for a lockable key, used only when no baseline was captured (a write
+     * from outside the settings page). block_* falls back to false — "not blocked
+     * at baseline" — which errs on the permissive side rather than freezing a
+     * surface the user never locked.
+     */
+    private static boolean lockableDefault(String key) {
+        if (key == null) return false;
+        if (key.startsWith("nav_show_")) return navDefault(key);
+        return false;
+    }
+
     /**
      * The surface the app should jump to on cold start: one of "home" (default),
-     * "search", "direct", "profile". In Quoicouview mode it is always Messages.
+     * "search", "direct", "profile".
      */
     public static String getLandingPage() {
         if (isQuoicouviewEnabled()) return "direct";
@@ -315,45 +431,60 @@ public final class Config {
         prefs.edit().putString("last_seen_version", value).apply();
     }
 
-    /** Snapshot every lockable toggle's current value for the permanent lock. */
-    public static void captureBaseline() {
-        HashMap<String, Boolean> baseline = new HashMap<>();
-        baseline.put("block_feed", isFeedBlocked());
-        baseline.put("block_explore", isExploreBlocked());
-        baseline.put("block_reels", isReelsBlocked());
-        baseline.put("block_friends_lane", isFriendsLaneBlocked());
-        baseline.put("block_stories", isStoriesBlocked());
-        baseline.put("block_instants", isInstantsBlocked());
-        baseline.put("block_notes", isNotesBlocked());
-        baseline.put("block_suggested", isSuggestedBlocked());
-        baseline.put("block_ads", isAdsBlocked());
-        for (String key : NAV_KEYS) {
-            baseline.put(key, getBlocked(key, navDefault(key)));
-        }
-        sBaseline = baseline;
+    /**
+     * Tag of the newest release the last update check found ahead of the running
+     * version ("v456-0-0-24-78"), or null when the check found nothing newer. Drives
+     * the red dot on the settings tab between launches.
+     */
+    public static String getLatestKnownRelease() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? null : prefs.getString("latest_known_release", null);
+    }
+
+    public static void setLatestKnownRelease(String tag) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        if (tag == null) prefs.edit().remove("latest_known_release").apply();
+        else prefs.edit().putString("latest_known_release", tag).apply();
+    }
+
+    /** Local day (yyyyddd) the "Update available" page was last shown, or 0. */
+    public static int getUpdatePromptDay() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? 0 : prefs.getInt("update_prompt_day", 0);
+    }
+
+    public static void setUpdatePromptDay(int day) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putInt("update_prompt_day", day).apply();
     }
 
     /**
-     * True if the given key's surface was already hidden at the start of the
-     * current settings session. Falls back to the live persisted value when no
-     * baseline was captured (calls outside the settings page).
+     * The package {@code lastUpdateTime} the "follow the official account" card was
+     * last shown for, or 0 if never. Kept so a fresh install that dies before the
+     * card was dismissed does not ask twice for the same install.
      */
-    public static boolean wasHiddenAtBaseline(String key) {
-        Boolean captured = sBaseline == null ? null : sBaseline.get(key);
-        boolean value = captured != null ? captured : getBlocked(key, lockableDefault(key));
-        return hidesSurface(key, value);
+    public static long getFollowPromptShownFor() {
+        SharedPreferences prefs = prefs();
+        return prefs == null ? 0L : prefs.getLong("follow_prompt_update_time", 0L);
     }
 
-    /**
-     * Default for a lockable key, used only when no baseline was captured (a write
-     * from outside the settings page). block_* falls back to false — "not blocked
-     * at baseline" — which errs on the permissive side rather than freezing a
-     * surface the user never locked.
-     */
-    private static boolean lockableDefault(String key) {
-        if (key == null) return false;
-        if (key.startsWith("nav_show_")) return navDefault(key);
-        return false;
+    public static void setFollowPromptShownFor(long updateTime) {
+        SharedPreferences prefs = prefs();
+        if (prefs == null) return;
+        prefs.edit().putLong("follow_prompt_update_time", updateTime).apply();
+    }
+
+    /** A follow-button click is an installation-wide choice, independent of updates. */
+    public static boolean hasFollowedOfficialAccount() {
+        return getBlocked("official_account_follow_clicked", false);
+    }
+
+    public static void rememberOfficialAccountFollow() {
+        SharedPreferences prefs = prefs();
+        // Persist before opening the deep link, which may immediately stop this activity.
+        if (prefs != null) prefs.edit().putBoolean("official_account_follow_clicked", true).commit();
     }
 
     public static void setNeedsRestart() { sNeedsRestart = true; }

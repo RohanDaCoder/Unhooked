@@ -8,7 +8,6 @@ import com.android.tools.smali.dexlib2.Opcode
 import com.android.tools.smali.dexlib2.iface.instruction.ReferenceInstruction
 import com.android.tools.smali.dexlib2.iface.instruction.TwoRegisterInstruction
 import com.android.tools.smali.dexlib2.iface.reference.FieldReference
-import com.android.tools.smali.dexlib2.iface.reference.MethodReference
 import com.unhooked.patches.quoicouview.quoicouviewAssetsPatch
 import com.unhooked.patches.shared.Constants.COMPATIBILITY_INSTAGRAM
 import com.unhooked.patches.shared.Constants.EXTENSION
@@ -21,11 +20,7 @@ private fun fieldType(instruction: Any?): String? =
 // The main tab-bar binder is an obfuscated class whose constructor takes the
 // tab-bar root View, pulls the tab_bar ViewGroup child out of it and stashes it
 // in a field, alongside a sibling View field. We match that shape rather than
-// the obfuscated names, which Instagram reshuffles between releases. The
-// findViewById requirement disambiguates it from other same-shaped holders:
-// the real binder must look its tab_bar child up by id (on 446 a bare
-// field-shape match lands in a different class whose tree never hosts the tab
-// bar, silently disabling the settings entry point and all hiders).
+// the obfuscated names, which Instagram reshuffles between releases.
 internal object TabBarBinderFingerprint : Fingerprint(
     name = "<init>",
     parameters = listOf("Landroid/view/View;"),
@@ -34,7 +29,6 @@ internal object TabBarBinderFingerprint : Fingerprint(
             method.implementation?.instructions?.let { instructions ->
                 var hasViewGroupField = false
                 var hasViewField = false
-                var callsFindViewById = false
                 for (instruction in instructions) {
                     if (instruction.opcode == Opcode.IPUT_OBJECT) {
                         when (fieldType(instruction)) {
@@ -42,16 +36,8 @@ internal object TabBarBinderFingerprint : Fingerprint(
                             "Landroid/view/View;" -> hasViewField = true
                         }
                     }
-                    if (instruction.opcode == Opcode.INVOKE_VIRTUAL) {
-                        val reference = (instruction as? ReferenceInstruction)?.reference as? MethodReference
-                        if (reference?.definingClass == "Landroid/view/View;" &&
-                            reference.name == "findViewById"
-                        ) {
-                            callsFindViewById = true
-                        }
-                    }
                 }
-                hasViewGroupField && hasViewField && callsFindViewById
+                hasViewGroupField && hasViewField
             } == true
     },
 )

@@ -36,9 +36,12 @@ import java.util.Map;
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.SET \
  *     --es key landing_page --es value search
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.NAV
+ * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.TREE \
+ *     --es id direct_inbox_action_bar --ei depth 3
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.TRACE --ez value true
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.UPDATE
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.WHATSNEW
+ * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.INTRO
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.RESET
  * adb shell am broadcast -p com.instagram.android -a com.unhooked.debug.RESTART
  * </pre>
@@ -48,7 +51,7 @@ import java.util.Map;
  */
 public final class DebugBridge {
 
-    public static final String TAG = "FeurDebug";
+    public static final String TAG = "UnhookedDebug";
 
     private static final String PREFIX = "com.unhooked.debug.";
 
@@ -58,7 +61,8 @@ public final class DebugBridge {
     private static final String LANDING_KEY = "landing_page";
 
     private static final String[] ACTIONS = {
-            "SET", "GET", "DUMP", "NAV", "TRACE", "UPDATE", "WHATSNEW", "RESET", "RESTART", "SETTINGS", "PING",
+            "SET", "GET", "REMOVE", "DUMP", "NAV", "TRACE", "UPDATE", "WHATSNEW", "RESET", "RESTART", "SETTINGS", "PING",
+            "TREE", "INTRO", "CLICK", "TOUCH", "FIELDS", "NETSTATS", "CAPTURE",
     };
 
     private static boolean sInstalled;
@@ -70,6 +74,68 @@ public final class DebugBridge {
      * class, so a release build reads a field that is always false.
      */
     private static volatile boolean sNetworkTrace;
+
+    private static final Map<String, long[]> NETWORK_STATS = new java.util.LinkedHashMap<>();
+
+    /** Debug-only aggregates, including hidden responses completed before TRACE is enabled. */
+    static void recordResponse(String path, int status, long received, long delivered, int removed) {
+        if (!sInstalled) return;
+        String surface = path.contains("/feed/timeline/") ? "timeline"
+                : path.contains("/feed/reels_tray") ? "stories"
+                : path.contains("/discover/topical_explore") ? "explore"
+                : path.contains("/clips/") ? "reels" : "other";
+        synchronized (NETWORK_STATS) {
+            long[] counts = NETWORK_STATS.get(surface);
+            if (counts == null) NETWORK_STATS.put(surface, counts = new long[5]);
+            counts[0]++;
+            if (status >= 200 && status < 300) counts[1]++;
+            counts[2] += received; counts[3] += delivered; counts[4] += removed;
+        }
+    }
+
+    private static String networkStats(boolean reset) {
+        StringBuilder out = new StringBuilder("surface completed success received delivered removed\n");
+        synchronized (NETWORK_STATS) {
+            for (Map.Entry<String, long[]> entry : NETWORK_STATS.entrySet()) {
+                out.append(entry.getKey());
+                for (long value : entry.getValue()) out.append(' ').append(value);
+                out.append('\n');
+            }
+            if (reset) NETWORK_STATS.clear();
+        }
+        return out.toString();
+    }
+
+    /**
+     * Path fragment whose next responses are saved, as received, under the app's
+     * cache dir ({@code feur-capture-N.json}); null when off. Debug builds only.
+     */
+    private static volatile String sCapture;
+    private static volatile int sCaptureLeft;
+
+    /** Whether the response to {@code path} should be saved; counts it down. */
+    static synchronized boolean shouldCapture(String path) {
+        String wanted = sCapture;
+        if (wanted == null || path == null || !path.contains(wanted) || sCaptureLeft <= 0) return false;
+        if (--sCaptureLeft == 0) sCapture = null;
+        return true;
+    }
+
+    private static int sCaptureIndex;
+
+    static void saveCapture(String path, byte[] body) {
+        try {
+            Context context = Config.getAppContext();
+            if (context == null) return;
+            java.io.File out = new java.io.File(context.getCacheDir(), "feur-capture-" + (sCaptureIndex++) + ".json");
+            java.io.FileOutputStream stream = new java.io.FileOutputStream(out);
+            stream.write(body);
+            stream.close();
+            Log.i(TAG, "captured " + path + " -> " + out.getName() + " (" + body.length + " bytes)");
+        } catch (Throwable t) {
+            Log.w(TAG, "capture failed", t);
+        }
+    }
 
     /** @see #sNetworkTrace */
     public static boolean isNetworkTraceEnabled() {
@@ -144,27 +210,51 @@ public final class DebugBridge {
         switch (command) {
             case "PING":
                 return "ok";
+            case "NETSTATS":
+                return networkStats(intent.getBooleanExtra("reset", false));
             case "SET":
                 return set(intent);
             case "GET":
                 return get(intent);
+            case "REMOVE":
+                String key = intent.getStringExtra("key");
+                if (key == null) return "ERROR missing --es key";
+                SharedPreferences store = prefs();
+                if (store == null) return "ERROR no context";
+                store.edit().remove(key).apply();
+                Config.setNeedsRestart();
+                return key + "=<unset>";
             case "DUMP":
                 return dump();
             case "NAV":
                 return nav();
+            case "TREE":
+                return tree(intent);
+            case "CLICK":
+                return click(intent);
+            case "TOUCH":
+                return touch(intent);
+            case "FIELDS":
+                return fields(intent);
             case "UPDATE":
                 return update();
             case "WHATSNEW":
                 return whatsNew();
+            case "INTRO":
+                return intro();
             case "TRACE":
                 sNetworkTrace = intent.getBooleanExtra("value", !sNetworkTrace);
-                return "network trace " + (sNetworkTrace ? "on (logcat -s FeurNet:I)" : "off");
+                return "network trace " + (sNetworkTrace ? "on (logcat -s UnhookedNet:I)" : "off");
+            case "CAPTURE":
+                sCapture = intent.getStringExtra("path");
+                sCaptureLeft = intent.getIntExtra("count", 1);
+                return sCapture == null ? "capture off" : "capturing next " + sCaptureLeft + " " + sCapture;
             case "RESET":
                 return reset();
             case "RESTART":
                 return restart(context);
             case "SETTINGS":
-                return settings();
+                return settings(intent);
             default:
                 return "unknown command " + command;
         }
@@ -250,7 +340,7 @@ public final class DebugBridge {
         if (tabBar == null) return "ERROR no tab bar (open the app first)";
         Context context = tabBar.getContext();
         View root = tabBar.getRootView();
-        View bar = root.findViewById(Hiders.resolveId(context, "tab_bar"));
+        View bar = Hiders.tabBar(tabBar);
         StringBuilder out = new StringBuilder();
 
         if (bar instanceof ViewGroup) {
@@ -277,6 +367,296 @@ public final class DebugBridge {
                     .append(" scrollState=").append(invokeInt(pager, "getScrollState"))
                     .append('\n');
         }
+        return out.toString();
+    }
+
+    /**
+     * {@code --es id <name> [--ei depth <n>] [--ei up <n>]}: every view of the
+     * window with that resource name, each with its ancestors ({@code up} levels,
+     * 6 by default) and its subtree ({@code depth} levels, 2 by default) — class,
+     * id, on-screen bounds and visibility. Without an id, the window's subtree.
+     * Reading an Instagram screen this way beats uiautomator, which skips views
+     * that are off screen (a pager page the user is not on).
+     */
+    private static String tree(Intent intent) {
+        ViewGroup tabBar = sTabBar.get();
+        if (tabBar == null) return "ERROR no tab bar (open the app first)";
+        Context context = tabBar.getContext();
+        View root = debugRoot(tabBar);
+        int depth = intent.getIntExtra("depth", 2);
+        int up = intent.getIntExtra("up", 6);
+        String name = intent.getStringExtra("id");
+        StringBuilder out = new StringBuilder();
+        if (name == null) {
+            describe(context, root, 0, depth, out);
+            return out.toString();
+        }
+        int id = Hiders.resolveId(context, name);
+        if (id == 0) return "ERROR no resource id " + name;
+        List<View> found = new ArrayList<>();
+        collectById(root, id, found);
+        out.append(name).append(" x").append(found.size()).append('\n');
+        for (View view : found) {
+            List<View> chain = new ArrayList<>();
+            for (Object p = view.getParent(); p instanceof View && chain.size() < up; p = ((View) p).getParent()) {
+                chain.add(0, (View) p);
+            }
+            for (int i = 0; i < chain.size(); i++) {
+                out.append(indent(i)).append("^ ").append(line(context, chain.get(i))).append('\n');
+            }
+            describe(context, view, chain.size(), chain.size() + depth, out);
+            out.append('\n');
+        }
+        return out.toString();
+    }
+
+    /**
+     * performClick() on the view {@link #target} picks, as a tap would, but on
+     * views that are off screen too.
+     */
+    private static String click(Intent intent) {
+        Object target = target(intent);
+        if (target instanceof String) return (String) target;
+        View view = (View) target;
+        return "performClick=" + view.performClick() + " " + line(view.getContext(), view);
+    }
+
+    /**
+     * A tap (down, then up) at the centre of the view {@link #target} picks,
+     * dispatched to that view directly: for views driven by touch listeners
+     * rather than click listeners, on screen or not.
+     */
+    private static String touch(Intent intent) {
+        Object target = target(intent);
+        if (target instanceof String) return (String) target;
+        final View view = (View) target;
+        final float x = view.getWidth() / 2f;
+        final float y = view.getHeight() / 2f;
+        final long down = android.os.SystemClock.uptimeMillis();
+        android.view.MotionEvent press = android.view.MotionEvent.obtain(down, down,
+                android.view.MotionEvent.ACTION_DOWN, x, y, 0);
+        boolean handled = view.dispatchTouchEvent(press);
+        press.recycle();
+        view.postDelayed(() -> {
+            long now = android.os.SystemClock.uptimeMillis();
+            android.view.MotionEvent release = android.view.MotionEvent.obtain(down, now,
+                    android.view.MotionEvent.ACTION_UP, x, y, 0);
+            view.dispatchTouchEvent(release);
+            release.recycle();
+        }, 60);
+        return "touch down handled=" + handled + " " + line(view.getContext(), view);
+    }
+
+    /**
+     * Same target as {@link #click}: every field of the view, from its class up to
+     * View, with the value's class (and size and element classes for collections).
+     * Instagram's androidx is obfuscated, so this is how its listeners and adapters
+     * are told apart.
+     */
+    private static String fields(Intent intent) {
+        Object target = target(intent);
+        if (target instanceof String) return (String) target;
+        View view = (View) target;
+        StringBuilder out = new StringBuilder(line(view.getContext(), view)).append('\n');
+        // --es field "A0E/A03": follow those fields from the view first (a list
+        // element by index: "A0P/2"), and dump the object found there instead.
+        String fieldPath = intent.getStringExtra("field");
+        if (fieldPath != null) {
+            Object object = view;
+            for (String step : fieldPath.split("/")) {
+                object = step(object, step);
+                if (object == null) return out.append("null at ").append(step).toString();
+            }
+            out.append(fieldPath).append(" = ").append(object.getClass().getName()).append('\n');
+            if (object instanceof java.util.List) {
+                java.util.List<?> items = (java.util.List<?>) object;
+                for (int i = 0; i < items.size(); i++) {
+                    Object item = items.get(i);
+                    out.append("  [").append(i).append("] ")
+                            .append(item == null ? "null" : item.getClass().getName()).append('\n');
+                }
+                return out.toString();
+            }
+            if (object instanceof java.util.Map) {
+                for (java.util.Map.Entry<?, ?> entry : ((java.util.Map<?, ?>) object).entrySet()) {
+                    out.append("  ").append(describe(entry.getKey())).append(" -> ")
+                            .append(describe(entry.getValue())).append('\n');
+                }
+                return out.toString();
+            }
+            if (object instanceof android.util.SparseArray) {
+                android.util.SparseArray<?> array = (android.util.SparseArray<?>) object;
+                for (int i = 0; i < array.size(); i++) {
+                    out.append("  ").append(array.keyAt(i)).append(" -> ")
+                            .append(describe(array.valueAt(i))).append('\n');
+                }
+                return out.toString();
+            }
+            for (Class<?> c = object.getClass(); c != null && c != Object.class; c = c.getSuperclass()) {
+                appendFields(c, object, out);
+            }
+            return out.toString();
+        }
+        for (Class<?> c = view.getClass(); c != null && c != View.class; c = c.getSuperclass()) {
+            appendFields(c, view, out);
+        }
+        // The listeners a view carries live in View's hidden ListenerInfo.
+        try {
+            java.lang.reflect.Field info = View.class.getDeclaredField("mListenerInfo");
+            info.setAccessible(true);
+            Object listeners = info.get(view);
+            if (listeners != null) appendFields(listeners.getClass(), listeners, out);
+        } catch (Throwable t) {
+            out.append("  (no ListenerInfo: ").append(t.getClass().getSimpleName()).append(")\n");
+        }
+        return out.toString();
+    }
+
+    /** A value as its class, or the class it names, for the FIELDS listings. */
+    private static String describe(Object value) {
+        if (value == null) return "null";
+        if (value instanceof Class) return "class " + ((Class<?>) value).getName();
+        if (value instanceof Number || value instanceof String) return value.toString();
+        return value.getClass().getName();
+    }
+
+    /** One step of a field path: a field of {@code owner} (any class up), or a list index. */
+    private static Object step(Object owner, String name) {
+        if (owner instanceof java.util.List && name.matches("\\d+")) {
+            java.util.List<?> list = (java.util.List<?>) owner;
+            int index = Integer.parseInt(name);
+            return index < list.size() ? list.get(index) : null;
+        }
+        for (Class<?> c = owner.getClass(); c != null; c = c.getSuperclass()) {
+            try {
+                java.lang.reflect.Field field = c.getDeclaredField(name);
+                field.setAccessible(true);
+                return field.get(owner);
+            } catch (NoSuchFieldException ignored) {
+                // look in the superclass
+            } catch (Throwable t) {
+                return null;
+            }
+        }
+        return null;
+    }
+
+    private static void appendFields(Class<?> c, Object owner, StringBuilder out) {
+        {
+            for (java.lang.reflect.Field field : c.getDeclaredFields()) {
+                if (java.lang.reflect.Modifier.isStatic(field.getModifiers())) continue;
+                if (field.getType().isPrimitive()) continue;
+                Object value;
+                try {
+                    field.setAccessible(true);
+                    value = field.get(owner);
+                } catch (Throwable t) {
+                    continue;
+                }
+                if (value == null) continue;
+                out.append("  ").append(c.getSimpleName()).append('.').append(field.getName())
+                        .append(" = ").append(value.getClass().getName());
+                if (value instanceof java.util.Collection) {
+                    java.util.Collection<?> items = (java.util.Collection<?>) value;
+                    out.append(" size=").append(items.size());
+                    for (Object item : items) {
+                        out.append(' ').append(item == null ? "null" : item.getClass().getName());
+                    }
+                }
+                out.append('\n');
+            }
+        }
+    }
+
+    private static View debugRoot(View fallback) {
+        // Creation and music screens have their own activity, outside the tab bar's window.
+        try {
+            Class<?> manager = Class.forName("android.view.WindowManagerGlobal");
+            Object instance = manager.getMethod("getInstance").invoke(null);
+            java.lang.reflect.Field views = manager.getDeclaredField("mViews");
+            views.setAccessible(true);
+            for (Object candidate : (List<?>) views.get(instance)) {
+                if (candidate instanceof View && ((View) candidate).hasWindowFocus()) return (View) candidate;
+            }
+        } catch (Throwable ignored) {
+        }
+        return fallback.getRootView();
+    }
+
+    /**
+     * {@code --es id <name> [--ei index <n>] [--es path <i/j/...>]}: the n-th view
+     * with that resource name, up by {@code --ei up}, then the child the path leads to. A String is an
+     * error message.
+     */
+    private static Object target(Intent intent) {
+        ViewGroup tabBar = sTabBar.get();
+        if (tabBar == null) return "ERROR no tab bar (open the app first)";
+        Context context = tabBar.getContext();
+        String name = intent.getStringExtra("id");
+        if (name == null) return "ERROR missing --es id";
+        int id = Hiders.resolveId(context, name);
+        if (id == 0) return "ERROR no resource id " + name;
+        List<View> found = new ArrayList<>();
+        collectById(debugRoot(tabBar), id, found);
+        int index = intent.getIntExtra("index", 0);
+        if (index >= found.size()) return "ERROR only " + found.size() + " " + name;
+        View view = found.get(index);
+        int up = intent.getIntExtra("up", 0);
+        for (int i = 0; i < up; i++) {
+            if (!(view.getParent() instanceof View)) return "ERROR no parent";
+            view = (View) view.getParent();
+        }
+        String path = intent.getStringExtra("path");
+        if (path != null) {
+            for (String step : path.split("/")) {
+                if (!(view instanceof ViewGroup)) return "ERROR path leaves the tree at " + step;
+                view = ((ViewGroup) view).getChildAt(Integer.parseInt(step));
+                if (view == null) return "ERROR no child " + step;
+            }
+        }
+        return view;
+    }
+
+    private static void collectById(View view, int id, List<View> out) {
+        if (view.getId() == id) out.add(view);
+        if (!(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) collectById(group.getChildAt(i), id, out);
+    }
+
+    private static void describe(Context context, View view, int level, int maxLevel, StringBuilder out) {
+        out.append(indent(level)).append(line(context, view)).append('\n');
+        if (level >= maxLevel || !(view instanceof ViewGroup)) return;
+        ViewGroup group = (ViewGroup) view;
+        for (int i = 0; i < group.getChildCount(); i++) {
+            describe(context, group.getChildAt(i), level + 1, maxLevel, out);
+        }
+    }
+
+    private static String line(Context context, View view) {
+        int[] at = new int[2];
+        view.getLocationOnScreen(at);
+        String cls = view.getClass().getName();
+        if (!cls.startsWith("androidx.")) cls = view.getClass().getSimpleName();
+        StringBuilder line = new StringBuilder(cls)
+                .append(' ').append(view.getId() == View.NO_ID ? "-" : nameOf(context, view.getId()))
+                .append(" [").append(at[0]).append(',').append(at[1]).append(' ')
+                .append(view.getWidth()).append('x').append(view.getHeight()).append(']');
+        if (view.getVisibility() != View.VISIBLE) line.append(' ').append(visibilityOf(view));
+        if (!view.isAttachedToWindow()) line.append(" detached");
+        if (view.hasOnClickListeners()) line.append(" onClick");
+        if (view.getPaddingTop() != 0 || view.getPaddingBottom() != 0) {
+            line.append(" padding=").append(view.getPaddingTop()).append('/').append(view.getPaddingBottom());
+        }
+        if (view.getTranslationY() != 0) line.append(" ty=").append(view.getTranslationY());
+        if (view.getAlpha() != 1f) line.append(" alpha=").append(view.getAlpha());
+        if (view instanceof ViewGroup) line.append(" children=").append(((ViewGroup) view).getChildCount());
+        return line.toString();
+    }
+
+    private static String indent(int level) {
+        StringBuilder out = new StringBuilder();
+        for (int i = 0; i < level; i++) out.append("  ");
         return out.toString();
     }
 
@@ -346,6 +726,17 @@ public final class DebugBridge {
      * only fires when the installed version changes, which can't be staged on a
      * device, so this drives the same card straight from the newest release.
      */
+    /** Show the card presenting Quoicouview mode, whether or not it is due. */
+    private static String intro() {
+        ViewGroup tabBar = sTabBar.get();
+        if (tabBar == null) return "ERROR no tab bar (open the app first)";
+        tabBar.post(() -> {
+            Context activity = Settings.getActivityContext(tabBar);
+            if (activity != null) QuoicouviewIntro.showNow(activity);
+        });
+        return "showing the Quoicouview card";
+    }
+
     private static String whatsNew() {
         ViewGroup tabBar = sTabBar.get();
         if (tabBar == null) return "ERROR no tab bar (open the app first)";
@@ -356,14 +747,21 @@ public final class DebugBridge {
         return "showing latest release notes";
     }
 
-    private static String settings() {
+    /**
+     * Open the settings as the long-press does. {@code --ez detached true} opens
+     * them from a view built on the application context and never attached, as
+     * Instagram's pre-inflated layouts are: the owner must still be found.
+     */
+    private static String settings(Intent intent) {
         ViewGroup tabBar = sTabBar.get();
         if (tabBar == null) return "ERROR no tab bar (open the app first)";
+        boolean detached = intent.getBooleanExtra("detached", false);
         tabBar.post(() -> {
-            Context activity = Settings.getActivityContext(tabBar);
+            View from = detached ? new View(Config.getAppContext()) : tabBar;
+            Context activity = Settings.getActivityContext(from);
             if (activity != null) Settings.show(activity);
         });
-        return "opening settings";
+        return "opening settings" + (detached ? " from a detached view" : "");
     }
 
     private static SharedPreferences prefs() {
