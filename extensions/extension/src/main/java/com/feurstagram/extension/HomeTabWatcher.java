@@ -9,7 +9,7 @@ import java.lang.ref.WeakReference;
 import java.lang.reflect.Field;
 
 /**
- * Keeps a long-press listener that opens the Unhooked settings on the Home
+ * Keeps a long-press listener that opens the Feurstagram settings on the Home
  * tab of the bottom bar (or, with Home hidden, the first icon still on it).
  *
  * The visible way in is {@link ProfileSettingsButton}, an icon in the header of

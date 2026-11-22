@@ -18,14 +18,16 @@ import android.widget.ScrollView;
 import android.widget.TextView;
 
 /**
- * A card inviting the user to follow the official Unhooked Instagram account,
- * shown once on the first launch after every install or update — before the
- * "What's new" card, which only runs once this one is out of the way.
+ * A card inviting the user to follow the official Feurstagram Instagram account,
+ * shown once, on the first launch of a fresh install — before the "What's new"
+ * card, which only runs once this one is out of the way.
  *
- * "After an install or update" is read from the package's {@code lastUpdateTime}
- * rather than its versionName: a Unhooked re-release on the same Instagram base
- * (a {@code -1} tag) keeps the versionName but is still an update, and a fresh
- * install has no stored time at all.
+ * Updates never show it: people who already follow the account were asked again
+ * after every release. Android keeps a package's {@code firstInstallTime} across
+ * updates and sets {@code lastUpdateTime} to the same instant only on the very
+ * first install, so the two being equal is what "fresh install" means here.
+ * {@code lastUpdateTime} is also stored once shown, so a launch that dies before the
+ * card is dismissed does not ask twice for the same install.
  *
  * The follow button opens the profile inside this very app (the signature-check
  * bypass makes Instagram accept its own deep links), falling back to any handler
@@ -33,7 +35,7 @@ import android.widget.TextView;
  */
 public final class FollowPrompt {
 
-    private static final String PROFILE_URL = "https://www.instagram.com/unhooked_off/";
+    private static final String PROFILE_URL = "https://www.instagram.com/feurstagram_off/";
 
     /**
      * Let the activity finish settling before a window goes on top of it: the tab
@@ -55,13 +57,25 @@ public final class FollowPrompt {
         if (context == null || checked) return;
         checked = true;
         final long updateTime = lastUpdateTime(context);
-        if (updateTime == 0L || updateTime == Config.getFollowPromptShownFor()) {
+        if (Config.hasFollowedOfficialAccount() || !isFreshInstall(context)
+                || updateTime == 0L || updateTime == Config.getFollowPromptShownFor()) {
             then.run();
             return;
         }
         new Handler(Looper.getMainLooper()).postDelayed(() -> {
             if (!show(context, updateTime, then)) then.run();
         }, SHOW_DELAY_MS);
+    }
+
+    /** Installed, never updated: Android stamps both times alike only on a first install. */
+    private static boolean isFreshInstall(Context context) {
+        try {
+            PackageManager pm = context.getPackageManager();
+            android.content.pm.PackageInfo info = pm.getPackageInfo(context.getPackageName(), 0);
+            return info.firstInstallTime == info.lastUpdateTime;
+        } catch (Throwable t) {
+            return false;
+        }
     }
 
     private static long lastUpdateTime(Context context) {
@@ -95,7 +109,7 @@ public final class FollowPrompt {
             ScrollView bodyScroll = new ScrollView(context);
             bodyScroll.setVerticalScrollBarEnabled(false);
             TextView body = new TextView(context);
-            body.setText("@unhooked_off is Unhooked's official Instagram account. "
+            body.setText("@feurstagram_off is Feurstagram's official Instagram account. "
                     + "Follow it to get a story every time a new version is out: new features, "
                     + "fixes and Instagram updates.");
             Settings.body(body);
@@ -122,6 +136,7 @@ public final class FollowPrompt {
 
             Button follow = Settings.makeButton(context, "Follow", Settings.PRIMARY, Settings.ON_PRIMARY, true);
             follow.setOnClickListener(v -> {
+                Config.rememberOfficialAccountFollow();
                 dialog.dismiss();
                 openProfile(context);
             });

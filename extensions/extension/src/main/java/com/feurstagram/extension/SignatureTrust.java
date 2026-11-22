@@ -13,7 +13,7 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Unhooked's own signing key, as Instagram's signature allowlist sees it.
+ * Feurstagram's own signing key, as Instagram's signature allowlist sees it.
  *
  * Instagram trusts the apps whose signing-key hash is in a Meta allowlist. The
  * re-signed APK is not in it, so the patch adds exactly one key: ours. Every other

@@ -211,7 +211,7 @@ final class TimerPill {
             expanded.setAlpha(0f);
             expanded.setVisibility(GONE);
             TextView title = text(context, 13f, Typeface.DEFAULT);
-            title.setText("Unhooked unlock");
+            title.setText("FeurStagram unlock");
             title.setTextColor(0xFFABABAB);
             title.setOnClickListener(v -> toggle());
             expanded.addView(title);
@@ -294,7 +294,7 @@ final class TimerPill {
             bigTime.setText(Timer.formatClock(left));
             detail.setText((running ? "Unlocked: " : "Paused: ") + unlockedNames());
             pauseButton.setText(running ? "Pause" : "Resume");
-            island.setContentDescription("Unhooked unlock, " + Timer.formatLong(left) + " left"
+            island.setContentDescription("FeurStagram unlock, " + Timer.formatLong(left) + " left"
                     + (running ? "" : ", paused"));
         }
 

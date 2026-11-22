@@ -64,7 +64,7 @@ public final class Block {
      * Instagram's feed-item parser, so the unit falls through to the parser's
      * "unknown FeedItem type" branch and is dropped without a crash.
      */
-    private static final String INVALID_FEED_TYPE = "unhooked_blocked";
+    private static final String INVALID_FEED_TYPE = "feurstagram_blocked";
 
     /** Ad-delivery surfaces injected into feed, stories, profile, DMs, explore, commerce. */
     private static final String[] ADS = {
@@ -124,23 +124,12 @@ public final class Block {
         boolean storySeen = !telemetry && Ghost.isStorySeen(uri) && Ghost.hideStoryViews();
         boolean comments = Comments.isCommentList(path) && Config.isCommentsBlocked();
         if (DebugBridge.isNetworkTraceEnabled()) {
-            Log.i("UnhookedNet", (telemetry || storySeen || comments ? "cancel " : "request ") + uri.getHost() + " " + path);
+            Log.i("FeurNet", (telemetry || storySeen || comments ? "cancel " : "request ") + uri.getHost() + " " + path);
         }
-        if (comments) throw new IOException("Comments blocked by Unhooked");
-        if (telemetry) throw new IOException("Telemetry blocked by Unhooked");
-        if (storySeen) throw new IOException("Story view hidden by Unhooked");
+        if (comments) throw new IOException("Comments blocked by Feurstagram");
+        if (telemetry) throw new IOException("Telemetry blocked by Feurstagram");
+        if (storySeen) throw new IOException("Story view hidden by Feurstagram");
         if (isOpenedReel(uri)) openedReelStarted(uri);
-
-        // Suggested / ad surfaces (request-level, before delivery).
-        if (Config.isSuggestedBlocked() && containsAny(path, SUGGESTED)) throw blocked();
-
-        // Screenshot bypass: drop the "screenshot taken" report Instagram sends
-        // to the other side for disappearing DMs and view-once media
-        // (direct_v2/threads/<id>/ephemeral_screenshot/), so the sender is not
-        // notified. The local FLAG_SECURE enforcement is stripped separately by
-        // the screenshot-bypass patch (see Screenshots).
-        if (Config.isScreenshotBypassEnabled() && path.contains("/ephemeral_screenshot/")) throw blocked();
-        if (Config.isAdsBlocked() && containsAny(path, ADS)) throw blocked();
     }
 
     // --- A reel opened on its own (a link, a share in a story or a DM) ------------
@@ -233,7 +222,7 @@ public final class Block {
         // actually contains and whether it was dropped — the way to tell a patch
         // that no longer runs from one whose unit list is out of date.
         if (DebugBridge.isNetworkTraceEnabled()) {
-            Log.i("UnhookedFeed", (drop ? "drop " : "keep ") + key);
+            Log.i("FeurFeed", (drop ? "drop " : "keep ") + key);
         }
         return drop ? INVALID_FEED_TYPE : key;
     }
@@ -279,7 +268,7 @@ public final class Block {
     public static Object filterFeedMedia(Object media) {
         boolean drop = media != null && MEDIA_IS_AD.get()[0] && Config.isAdsBlocked();
         if (DebugBridge.isNetworkTraceEnabled()) {
-            Log.i("UnhookedFeed", (drop ? "drop " : "keep ")
+            Log.i("FeurFeed", (drop ? "drop " : "keep ")
                     + (MEDIA_IS_AD.get()[0] ? "sponsored media" : "media"));
         }
         return drop ? null : media;
@@ -313,7 +302,7 @@ public final class Block {
             Object type = entry.getClass().getMethod(getter).invoke(entry);
             boolean drop = "suggested_user".equals(String.valueOf(type));
             if (DebugBridge.isNetworkTraceEnabled()) {
-                Log.i("UnhookedTray", (drop ? "drop " : "keep ") + type);
+                Log.i("FeurTray", (drop ? "drop " : "keep ") + type);
             }
             return drop ? null : entry;
         } catch (Throwable t) {
@@ -335,7 +324,4 @@ public final class Block {
         return false;
     }
 
-    private static IOException blocked() {
-        return new IOException("Blocked by Unhooked");
-    }
 }

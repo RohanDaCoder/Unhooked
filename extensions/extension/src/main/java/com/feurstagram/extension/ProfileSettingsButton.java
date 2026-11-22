@@ -24,7 +24,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * A Unhooked icon in the header of the signed-in user's own profile, just
+ * A Feurstagram icon in the header of the signed-in user's own profile, just
  * before the menu button: a tap opens the settings, and a red dot on it says an
  * update is waiting.
  *
@@ -178,14 +178,14 @@ public final class ProfileSettingsButton {
             badgePaint.setColor(BADGE_RED);
             setClickable(true);
             setFocusable(true);
-            setContentDescription("Unhooked settings");
+            setContentDescription("FeurStagram settings");
             setBackground(new RippleDrawable(ColorStateList.valueOf(0x33808080), null, null));
         }
 
         void setBadge(boolean show) {
             if (badge == show) return;
             badge = show;
-            setContentDescription(show ? "Unhooked settings, update available" : "Unhooked settings");
+            setContentDescription(show ? "FeurStagram settings, update available" : "FeurStagram settings");
             invalidate();
         }
 
@@ -205,7 +205,7 @@ public final class ProfileSettingsButton {
     }
 
     /**
-     * The Unhooked mark as a line icon, on Instagram's 24-unit grid with its
+     * The Feurstagram mark as a line icon, on Instagram's 24-unit grid with its
      * 2-unit stroke: a rounded diamond around a ring.
      */
     static final class Logo extends Drawable {
