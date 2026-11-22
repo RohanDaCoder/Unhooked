@@ -67,7 +67,7 @@ public final class ResponseFilter {
                     state.filter == null ? 0 : state.filter.removed);
         }
         if (state != null && DebugBridge.isNetworkTraceEnabled()) {
-            Log.i("FeurResponse", event + " http=" + state.status + " received=" + state.received
+            Log.i("UnhookedResponse", event + " http=" + state.status + " received=" + state.received
                     + " delivered=" + state.delivered + " removed="
                     + (state.filter == null ? 0 : state.filter.removed) + " " + state.path
                     + (state.filter == null ? "" : " keys=" + state.filter.keySummary()));

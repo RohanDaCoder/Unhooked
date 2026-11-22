@@ -56,7 +56,7 @@ import java.util.WeakHashMap;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
- * Checks GitHub for a newer Feurstagram release and, if found, shows what changed
+ * Checks GitLab for a newer Unhooked release and, if found, shows what changed
  * and installs it in place — no browser required.
  *
  * The flow is three screens: a full-screen "update available" page carrying the
@@ -74,17 +74,18 @@ import java.util.concurrent.atomic.AtomicBoolean;
  */
 public final class UpdateChecker implements Runnable {
 
-    private static final String REPO = "jean-voila/Feurstagram";
-    private static final String LATEST_API = "https://api.github.com/repos/" + REPO + "/releases/latest";
-    private static final String LATEST_PAGE = "https://github.com/" + REPO + "/releases/latest";
-    private static final String RELEASE_BY_TAG = "https://api.github.com/repos/" + REPO + "/releases/tags/";
-    private static final String USER_AGENT = "Feurstagram-UpdateCheck";
+    private static final String PROJECT = "RohanDaCoder%2FUnhooked";
+    private static final String API = "https://gitlab.com/api/v4/projects/" + PROJECT + "/releases";
+    private static final String LATEST_API = API + "/permalink/latest";
+    private static final String LATEST_PAGE = "https://gitlab.com/RohanDaCoder/Unhooked/-/releases";
+    private static final String RELEASE_BY_TAG = API + "/";
+    private static final String USER_AGENT = "Unhooked-UpdateCheck";
 
     /** Action prefix for the per-session PackageInstaller status callback. */
     private static final String INSTALL_ACTION = "com.feurstagram.extension.INSTALL_STATUS";
 
     /** Where the download lands (app-specific external dir, no permission needed). */
-    private static final String UPDATE_FILE_NAME = "feurstagram-update.apk";
+    private static final String UPDATE_FILE_NAME = "unhooked-update.apk";
 
     private static boolean launchWatcherInstalled;
     private static final AtomicBoolean automaticCheckRunning = new AtomicBoolean();
@@ -121,8 +122,8 @@ public final class UpdateChecker implements Runnable {
 
     private static void checkAutomatically(Activity activity) {
         if (!Config.isAutoUpdateEnabled() || !automaticCheckRunning.compareAndSet(false, true)) return;
-        if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurUpdate", "automatic check started");
-        new Thread(new UpdateChecker(activity, false), "FeurStagram-update-check").start();
+        if (DebugBridge.isNetworkTraceEnabled()) Log.i("UnhookedUpdate", "automatic check started");
+        new Thread(new UpdateChecker(activity, false), "Unhooked-update-check").start();
     }
 
     private static final class LaunchWatcher implements Application.ActivityLifecycleCallbacks {
@@ -208,7 +209,7 @@ public final class UpdateChecker implements Runnable {
                     }
                 });
             } else if (manual) {
-                ui.post(() -> toast("FeurStagram is up to date (" + installed + ")"));
+                ui.post(() -> toast("Unhooked is up to date (" + installed + ")"));
             }
         } catch (Throwable t) {
             // Network/parse failures are non-fatal: silent for auto checks,
@@ -217,7 +218,7 @@ public final class UpdateChecker implements Runnable {
         } finally {
             if (!manual) {
                 automaticCheckRunning.set(false);
-                if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurUpdate", "automatic check finished");
+                if (DebugBridge.isNetworkTraceEnabled()) Log.i("UnhookedUpdate", "automatic check finished");
             }
         }
     }
@@ -245,7 +246,7 @@ public final class UpdateChecker implements Runnable {
     /** True when this is the side-by-side clone package (asset name ends in -clone.apk). */
     private boolean isCloneBuild() {
         String pkg = context.getPackageName();
-        return pkg != null && pkg.endsWith(".feurstagram");
+        return pkg != null && pkg.endsWith(".unhooked");
     }
 
     /** Everything the prompt and the download need about the release on offer. */
@@ -272,13 +273,15 @@ public final class UpdateChecker implements Runnable {
 
     /** The release description (Markdown), unescaped, or null. */
     static String extractReleaseBody(String json) {
-        String raw = stringField(json, "\"body\"", 0);
+        // GitLab calls it "description"; keep "body" as a fallback.
+        String raw = stringField(json, "\"description\"", 0);
+        if (raw == null) raw = stringField(json, "\"body\"", 0);
         return raw == null || raw.trim().isEmpty() ? null : raw;
     }
 
     /**
      * Read the JSON string value that follows {@code key} at or after {@code from},
-     * decoding the backslash escapes GitHub actually emits: newline, carriage
+     * decoding the backslash escapes the API actually emits: newline, carriage
      * return, tab, quote, backslash, slash and 4-digit hex code points.
      * Returns null when the key is absent or the value isn't a string.
      */
@@ -330,12 +333,17 @@ public final class UpdateChecker implements Runnable {
     static String extractApkUrl(String json, boolean clone) {
         if (json == null) return null;
         List<String> urls = new ArrayList<>();
-        int idx = 0;
-        while (true) {
-            String url = stringField(json, "\"browser_download_url\"", idx);
-            if (url == null) break;
-            urls.add(url);
-            idx = json.indexOf("\"browser_download_url\"", idx) + 1;
+        // GitLab release links use "url"; keep "browser_download_url" so an
+        // old cached response still parses. Only *.apk values survive the
+        // filter below, so unrelated links (avatars, web URLs) are harmless.
+        for (String key : new String[]{"\"browser_download_url\"", "\"url\""}) {
+            int idx = 0;
+            while (true) {
+                String url = stringField(json, key, idx);
+                if (url == null) break;
+                urls.add(url);
+                idx = json.indexOf(key, idx) + 1;
+            }
         }
         for (String url : urls) {
             if (!url.endsWith(".apk")) continue;
@@ -348,7 +356,8 @@ public final class UpdateChecker implements Runnable {
     /**
      * Byte size of the asset this build would download, or -1. Used to show a
      * total before the first byte arrives; the server's Content-Length wins once
-     * the download starts.
+     * the download starts. GitLab exposes no per-asset size, so this returns -1
+     * there and the live Content-Length is used.
      */
     static long extractApkSize(String json, boolean clone) {
         if (json == null) return -1;
@@ -360,8 +369,8 @@ public final class UpdateChecker implements Runnable {
             idx = at + 1;
             if (url == null || !url.endsWith(".apk")) continue;
             if (url.endsWith("-clone.apk") != clone) continue;
-            // "size" belongs to the same asset object, and GitHub emits it before
-            // browser_download_url — so search backwards from this asset's start.
+            // "size" belongs to the same asset object, and the old API emitted it
+            // before browser_download_url — so search backwards from this asset's start.
             int assetStart = json.lastIndexOf('{', at);
             int size = assetStart < 0 ? -1 : json.indexOf("\"size\"", assetStart);
             if (size < 0 || size > at) return -1;
@@ -376,7 +385,7 @@ public final class UpdateChecker implements Runnable {
         }
     }
 
-    /** "v434-0-0-44-74" -> "434.0.0.44.74" so it matches the installed versionName. */
+    /** "v1.2.0" -> "1.2.0" so it compares against the stamped build version. */
     static String normalize(String tag) {
         if (tag == null) return "";
         String value = tag.trim();
@@ -386,14 +395,13 @@ public final class UpdateChecker implements Runnable {
         return value.replace('-', '.');
     }
 
-    /** Installed Feurstagram release, including a revision when assigned. "0" on failure. */
+    /** Installed Unhooked release, including a revision when assigned. "0" on failure. */
     private static String installedVersion(Context context) {
         // A debug build reports an ancient version so the whole update flow can be
         // exercised against the real release. Always null in a release build.
         String pretend = DebugBridge.pretendInstalledVersion();
         if (pretend != null) return pretend;
-        String real = realInstalledVersion(context);
-        return real == null ? "0" : real;
+        return UnhookedVersion.NAME;
     }
 
     /**
@@ -431,14 +439,14 @@ public final class UpdateChecker implements Runnable {
     /** Open the "Update available" page for the pending release, from the settings. */
     static void openPendingUpdate(Context context) {
         if (context == null) return;
-        new Thread(new UpdateChecker(context, true), "FeurStagram-update-open").start();
+        new Thread(new UpdateChecker(context, true), "Unhooked-update-open").start();
     }
 
     /**
      * The installed release identity, never the debug pretence. Package metadata
      * stays Instagram's; only the updater and "What's new" use our revision tag.
      */
-    private static String realInstalledVersion(Context context) {
+    static String instagramVersion(Context context) {
         try {
             PackageManager pm = context.getPackageManager();
             return ReleaseVersion.forInstagram(pm.getPackageInfo(context.getPackageName(), 0).versionName);
@@ -481,16 +489,15 @@ public final class UpdateChecker implements Runnable {
     public static void checkWhatsNew(final Context context) {
         if (context == null || whatsNewChecked) return;
         whatsNewChecked = true;
-        final String installed = realInstalledVersion(context);
-        if (installed == null) return;
+        final String installed = installedVersion(context);
         String seen = Config.getLastSeenVersion();
         if (seen == null) {
             Config.setLastSeenVersion(installed);
             return;
         }
         if (seen.equals(installed)) return;
-        new Thread(() -> loadNotes(context, "v" + installed.replace('.', '-'), installed, true),
-                "feurstagram-whatsnew").start();
+        new Thread(() -> loadNotes(context, "v" + installed, installed, true),
+                "unhooked-whatsnew").start();
     }
 
     /**
@@ -530,7 +537,7 @@ public final class UpdateChecker implements Runnable {
                         .post(() -> showWhatsNew(context, tag == null ? "" : tag, notes));
             } catch (Throwable ignored) {
             }
-        }, "feurstagram-whatsnew-debug").start();
+        }, "unhooked-whatsnew-debug").start();
     }
 
     private static void showWhatsNew(Context context, String version, String notes) {
@@ -547,7 +554,7 @@ public final class UpdateChecker implements Runnable {
             card.addView(title);
 
             TextView subtitle = new TextView(context);
-            subtitle.setText("FeurStagram " + version);
+            subtitle.setText("Unhooked " + version);
             Settings.body(subtitle);
             subtitle.setPadding(0, Settings.dp(context, 4), 0, 0);
             card.addView(subtitle);
@@ -585,7 +592,7 @@ public final class UpdateChecker implements Runnable {
             if (updateInFlight || (existing != null && existing.isShowing())) return;
             Settings.Page page = Settings.newPage(context);
             Settings.addPageTitle(page, "Update available",
-                    "FeurStagram " + release.tag + "  ·  you have " + installed);
+                    "Unhooked " + release.tag + "  ·  you have " + installed);
 
             final Dialog dialog = Settings.newPageDialog(context, page.root);
             dialog.setOnDismissListener(d -> {
@@ -725,7 +732,7 @@ public final class UpdateChecker implements Runnable {
 
         /** Ongoing-download notification. One at a time, so one id is enough. */
         private static final int NOTIFICATION_ID = 0x4645_5552;
-        private static final String CHANNEL_ID = "feurstagram_update";
+        private static final String CHANNEL_ID = "unhooked_update";
         private static final String CANCEL_ACTION = "com.feurstagram.extension.UPDATE_CANCEL";
 
         private final Context context;
@@ -758,7 +765,7 @@ public final class UpdateChecker implements Runnable {
             Updater updater = new Updater(context, release);
             updater.registerCancelAction();
             updater.showProgressPage();
-            new Thread(updater::download, "feurstagram-update").start();
+            new Thread(updater::download, "unhooked-update").start();
         }
 
         /** Tear down everything on-screen and in the shade. */
@@ -796,8 +803,8 @@ public final class UpdateChecker implements Runnable {
         private void showProgressPage() {
             try {
                 Settings.Page page = Settings.newPage(context);
-                Settings.addPageTitle(page, "Updating FeurStagram",
-                        "FeurStagram " + release.tag);
+                Settings.addPageTitle(page, "Updating Unhooked",
+                        "Unhooked " + release.tag);
 
                 LinearLayout block = new LinearLayout(context);
                 block.setOrientation(LinearLayout.VERTICAL);
@@ -905,14 +912,14 @@ public final class UpdateChecker implements Runnable {
                 if (manager == null) return;
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                     NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                            "Feurstagram updates", NotificationManager.IMPORTANCE_LOW);
+                            "Unhooked updates", NotificationManager.IMPORTANCE_LOW);
                     channel.setShowBadge(false);
                     manager.createNotificationChannel(channel);
                 }
                 Notification.Builder builder = Build.VERSION.SDK_INT >= Build.VERSION_CODES.O
                         ? new Notification.Builder(app, CHANNEL_ID)
                         : new Notification.Builder(app);
-                builder.setContentTitle("Updating FeurStagram")
+                builder.setContentTitle("Updating Unhooked")
                         .setContentText(text)
                         .setSmallIcon(android.R.drawable.stat_sys_download)
                         .setOngoing(true)
@@ -1051,7 +1058,7 @@ public final class UpdateChecker implements Runnable {
                 long length = apk.length();
                 long written = 0;
                 try (InputStream in = new FileInputStream(apk);
-                     OutputStream out = session.openWrite("feurstagram", 0, length)) {
+                     OutputStream out = session.openWrite("unhooked", 0, length)) {
                     byte[] buffer = new byte[131072];
                     int n;
                     while ((n = in.read(buffer)) > 0) {

@@ -39,7 +39,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Feurstagram settings, shown as a full-screen page when the Home tab (or, with
+ * Unhooked settings, shown as a full-screen page when the Home tab (or, with
  * Home hidden, the first tab on the bar) is long-pressed. Built entirely in code
  * (no bundled resources) and persisted through {@link Config}.
  *
@@ -49,14 +49,14 @@ import java.util.List;
  * the type: large corner radii, options grouped into "connected" lists where the
  * group's outer corners are round and the joints between rows are nearly square,
  * pill-shaped buttons, sentence-case section labels, and a tight-tracked headline.
- * This class also owns the palette, type and shape helpers the other Feurstagram
+ * This class also owns the palette, type and shape helpers the other Unhooked
  * surfaces ({@link UpdateChecker}, {@link Onboarding}) draw with, so the design
  * only lives in one place.
  *
  * <h3>Fitting any screen</h3>
  * Instagram targets a recent SDK, so its windows are edge-to-edge: system bars
  * and display cutouts overlap the dialog and nothing is inset for us. Every
- * Feurstagram window therefore goes through {@link #applyWindowInsets} and pads
+ * Unhooked window therefore goes through {@link #applyWindowInsets} and pads
  * itself — otherwise the action buttons sit under a three-button navigation bar
  * and the scroll area runs off the bottom of the screen. Content that can grow
  * (the settings list, a release-notes block) lives in a scroller bounded by what
@@ -105,7 +105,7 @@ public final class Settings {
     private Settings() {}
 
     /**
-     * Install the Feurstagram entry points off the bottom tab bar: the settings
+     * Install the Unhooked entry points off the bottom tab bar: the settings
      * button of the profile header, the long-press settings gesture, the UI
      * hiders, and the launch update check. The tab bar is
      * just a stable handle into the window's view tree.
@@ -220,10 +220,10 @@ public final class Settings {
     }
 
     private static void unavailable(Context context, Throwable cause) {
-        android.util.Log.w("FeurStagram", "settings could not open", cause);
+        android.util.Log.w("Unhooked", "settings could not open", cause);
         Context target = context != null ? context : Config.getAppContext();
         if (target != null) {
-            Toast.makeText(target.getApplicationContext(), "Feurstagram settings unavailable here",
+            Toast.makeText(target.getApplicationContext(), "Unhooked settings unavailable here",
                     Toast.LENGTH_LONG).show();
         }
     }
@@ -233,7 +233,7 @@ public final class Settings {
     /**
      * Make a dialog window fill the screen edge to edge with light system-bar
      * icons, so the content underneath can pad itself against the bars and the
-     * cutout. Every Feurstagram dialog goes through here.
+     * cutout. Every Unhooked dialog goes through here.
      *
      * @param background window background colour, or 0 for a transparent scrim
      * @param dim        how much to darken what is behind (0 for the full-screen page)
@@ -356,7 +356,7 @@ public final class Settings {
     // --- The full-screen page scaffold ----------------------------------------
 
     /**
-     * The shape every Feurstagram full-screen surface takes: a headline block, a
+     * The shape every Unhooked full-screen surface takes: a headline block, a
      * scrolling middle that absorbs whatever space is left, and an action row
      * pinned above the navigation bar. Settings and both update screens are built
      * on it, so they inset, centre and shrink identically.
@@ -539,7 +539,7 @@ public final class Settings {
         void showOverview(boolean animate) {
             dialog.onBack = null;
             back.setVisibility(View.GONE);
-            title.setText("Feurstagram");
+            title.setText("Unhooked");
             subtitle.setText(hardcore
                     ? "Permanent lock is on. You can tighten blocks but not loosen them. "
                             + "Reinstall to fully unlock."
@@ -678,7 +678,7 @@ public final class Settings {
         if (pending != null) {
             LinearLayout update = addSection(context, column, "Update");
             addSectionRow(context, update, "download", "Update available",
-                    "FeurStagram " + pending + " is out",
+                    "Unhooked " + pending + " is out",
                     () -> UpdateChecker.openPendingUpdate(context));
             sealGroup(context, update);
         }
@@ -717,9 +717,9 @@ public final class Settings {
                         Settings::buildDisplay));
         addSectionRow(context, app, "download", "Updates",
                 Config.isAutoUpdateEnabled() ? "Automatic check on" : "Automatic check off",
-                () -> pages.open("Updates", "Keep Feurstagram current.", Settings::buildUpdates));
+                () -> pages.open("Updates", "Keep Unhooked current.", Settings::buildUpdates));
         addSectionRow(context, app, "heart", "Support", "Help keep the project going",
-                () -> pages.open("Support", "Feurstagram is free and open source.", Settings::buildSupport));
+                () -> pages.open("Support", "Unhooked is free and open source.", Settings::buildSupport));
         sealGroup(context, app);
     }
 
@@ -828,6 +828,11 @@ public final class Settings {
         addRow(context, ghost, "Hide typing indicator", "ghost_typing", Config.getBlocked("ghost_typing", false));
         addRow(context, ghost, "Hide story views", "ghost_story_views", Config.getBlocked("ghost_story_views", false));
         sealGroup(context, ghost);
+
+        LinearLayout privacy = addSection(context, column, "Privacy");
+        addRow(context, privacy, "Allow screenshots", "allow_screenshots",
+                Config.isScreenshotBypassEnabled());
+        sealGroup(context, privacy);
     }
 
     private static String privacySummary() {
@@ -1077,7 +1082,7 @@ public final class Settings {
             return;
         }
         showConfirm(context, "Restart Instagram?",
-                "Feurstagram will clear the cache and restart the app to apply your changes.",
+                "Unhooked will clear the cache and restart the app to apply your changes.",
                 "Restart", PRIMARY, ON_PRIMARY,
                 () -> CacheCleaner.clearAndRestart(context));
     }
@@ -1104,8 +1109,8 @@ public final class Settings {
     // --- Confirmation cards ---------------------------------------------------
 
     /**
-     * A centred card with a title, a body and two actions. Shared by the restart
-     * and permanent-lock prompts, and shaped like {@link UpdateChecker}'s cards.
+     * A centred card with a title, a body and two actions. Used by the restart
+     * prompt, and shaped like {@link UpdateChecker}'s cards.
      */
     public static void showConfirm(Context context, String titleText, String bodyText,
                                    String confirmText, int confirmBg, int confirmFg,
@@ -1335,12 +1340,6 @@ public final class Settings {
         toggle.setChecked(value);
         toggle.setContentDescription(label);
         toggle.setOnCheckedChangeListener((btn, isChecked) -> {
-            // Hardcore: a frozen surface cannot be revealed; snap it back to hidden.
-            if (Config.isHardcoreMode() && Config.isLockable(key)
-                    && !Config.hidesSurface(key, isChecked) && Config.wasHiddenAtBaseline(key)) {
-                btn.setChecked(!isChecked);
-                return;
-            }
             Config.setBlocked(key, isChecked);
             Config.setNeedsRestart();
             if (onChanged != null) onChanged.run();
@@ -1349,47 +1348,59 @@ public final class Settings {
         row.setOnClickListener(v -> {
             if (toggle.isEnabled()) toggle.toggle();
         });
-
-        // Freeze rows whose surface is already hidden under the permanent lock.
-        if (Config.isLockable(key) && Config.isHardcoreMode() && Config.hidesSurface(key, value)) {
-            toggle.setEnabled(false);
-            row.setEnabled(false);
-            row.setClickable(false);
-            row.setAlpha(0.38f);
-        }
     }
 
+    /**
+     * The line under a row's label: what turning this on actually does to the app,
+     * said in plain words. Every key gets its own line — there is deliberately no
+     * generic fallback, so a toggle somebody adds and forgets to describe renders
+     * with no second line instead of quietly inheriting a vague one.
+     */
     private static String supportText(String key) {
-        if (key.equals("auto_update")) return "Check GitHub for a new version on launch.";
-        if (key.equals("block_ads")) return "Block sponsored ads across Instagram.";
-        if (key.equals("block_comments")) return "Hide comment buttons, counts and lists on posts, Reels and stories.";
-        if (key.equals("ghost_dm_seen")) {
-            return "People don't see when you read their messages. Chats you read stay unread here too.";
+        switch (key) {
+            case "block_feed":
+                return "Nothing loads in the Home tab. The tab itself stays.";
+            case "block_explore":
+                return "Nothing loads in the Explore tab.";
+            case "block_reels":
+                return "Nothing loads in Reels. To take the Reels icon off the bottom bar as well, use Navigation bar.";
+            case "block_stories":
+                return "Nothing loads in Stories. Ones you've already opened stay until you restart.";
+            case "block_suggested":
+                return "Hide the accounts Instagram suggests to you.";
+            case "block_ads":
+                return "Hide sponsored posts, including the ones that appear in the feed itself.";
+            case "block_friends_lane":
+                return "Hide the row of friend avatars at the top of a reel.";
+            case "block_instants":
+                return "Hide the + button and the quick-snap preview in direct messages.";
+            case "block_notes":
+                return "Hide the notes bar above your direct messages.";
+            case "block_notifications":
+                return "Hide the heart button at the top of the feed.";
+            case "limit_following_feed":
+                return "Show only posts from accounts you follow, in order. Turn off Home feed first.";
+            case "hide_toasts":
+                return "Hide Instagram's popups, like “couldn't refresh feed”.";
+            case "force_sdr":
+                return "Stop Instagram turning on HDR, which makes the dark UI look washed out.";
+            case "allow_screenshots":
+                return "Let you screenshot view-once photos and disappearing messages.";
+            case "auto_update":
+                return "Check for new Unhooked versions when you open the app.";
+            case "nav_show_search":
+                return "Show the search icon in the bottom bar.";
+            case "nav_show_reels":
+                return "Show the Reels icon in the bottom bar.";
+            case "nav_show_create":
+                return "Show the create icon in the bottom bar.";
+            case "nav_show_direct":
+                return "Show the messages icon in the bottom bar.";
+            case "nav_show_profile":
+                return "Show the profile icon in the bottom bar.";
+            default:
+                return null;
         }
-        if (key.equals("ghost_typing")) return "People don't see “typing…” while you write to them.";
-        if (key.equals("ghost_story_views")) {
-            return "Watch stories without appearing in their viewers. Rings still turn grey for you.";
-        }
-        if (key.equals("block_telemetry")) {
-            return "Stop the usage analytics Instagram uploads in the background. Sign-in, security checks and messages are not affected. Stays reversible under the permanent lock.";
-        }
-        if (key.equals("limit_following_feed")) return "Show only accounts you follow (needs the feed unblocked).";
-        if (key.equals("hide_toasts")) return "Hide every Instagram popup, including “couldn’t refresh feed”.";
-        if (key.equals("force_sdr")) return "Keep blacks deep by stopping Instagram forcing HDR on the UI.";
-        if (key.equals("grayscale")) {
-            return "Show Instagram without colour: interface, photos and videos. Only on screen; what you save or share keeps its colours.";
-        }
-        if (key.equals("block_friends_lane")) return "Hide the Friends tab and its avatars in the Reels header.";
-        if (key.equals("block_notifications")) return "Hide the notifications (heart) button in the feed header.";
-        if (key.equals("block_threads")) return "Hide the Threads button at the top of your profile.";
-        if (key.equals("quoicouview_mode")) {
-            return "Messages become the main page, with stories on top. Home is turned off.";
-        }
-        if (key.equals("nav_show_home")) {
-            return "Show this icon in the navigation bar. These settings open from the Feurstagram icon at the top of your profile, or by long-pressing the first icon.";
-        }
-        if (key.startsWith("nav_show_")) return "Show this icon in the navigation bar.";
-        return "Hide this surface in Instagram.";
     }
 
     // --- Landing page picker --------------------------------------------------
@@ -1428,8 +1439,7 @@ public final class Settings {
         }
 
         // A surface whose nav icon is hidden is not a landing page you can choose:
-        // it would hand back exactly what was hidden, and under the permanent lock
-        // the picker was the one way left to reach a frozen surface (issue #116).
+        // it would hand back exactly what was hidden.
         landingSync[0] = () -> {
             String current = Config.getLandingPage();
             for (int i = 0; i < LANDING_VALUES.length; i++) {

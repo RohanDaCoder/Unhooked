@@ -3,18 +3,16 @@ package com.feurstagram.extension;
 import android.content.Context;
 import android.content.SharedPreferences;
 
-import java.util.HashMap;
-
 /**
- * Runtime configuration backed by SharedPreferences ("feurstagram_prefs").
+ * Runtime configuration backed by SharedPreferences ("unhooked_prefs").
  *
  * Independent block toggles (feed, explore, reels, stories, instants, notes,
- * suggested, ads) plus the permanent "hardcore" lock. The application Context
- * is resolved reflectively so no patched class needs to hand us one.
+ * suggested, ads). The application Context is resolved reflectively so no
+ * patched class needs to hand us one.
  */
 public final class Config {
 
-    private static final String PREFS = "feurstagram_prefs";
+    private static final String PREFS = "unhooked_prefs";
 
     /**
      * Set once any setting changes in this process. While true, leaving the
@@ -24,12 +22,10 @@ public final class Config {
     private static boolean sNeedsRestart;
 
     /**
-     * Snapshot of every block_* toggle captured when the settings page opens.
-     * The permanent lock only freezes surfaces that were already blocked at this
-     * snapshot, so a mis-toggle made during the current session can still be
-     * undone until Done restarts the app. Null until captureBaseline() runs.
+     * Snapshot of every lockable toggle at the start of the current settings
+     * session (see {@link #captureBaseline}); what the permanent lock freezes.
      */
-    private static HashMap<String, Boolean> sBaseline;
+    private static java.util.HashMap<String, Boolean> sBaseline;
 
     private Config() {}
 
@@ -119,17 +115,6 @@ public final class Config {
     }
 
     public static void setBlocked(String key, boolean value) {
-        // Hardcore lock only forbids *revealing* a surface. Hiding one is always
-        // allowed so users can still tighten. A surface may be revealed only when
-        // it was already visible at the start of the current settings session
-        // (undo of a mis-toggle); one hidden at session open stays frozen until a
-        // reinstall.
-        if (isHardcoreMode()
-                && isLockable(key)
-                && !hidesSurface(key, value)
-                && wasHiddenAtBaseline(key)) {
-            return;
-        }
         SharedPreferences prefs = prefs();
         if (prefs == null) return;
         prefs.edit().putBoolean(key, value).apply();
@@ -186,12 +171,22 @@ public final class Config {
      * Whether Instagram's window is pinned to SDR (COLOR_MODE_DEFAULT) instead of
      * the HDR mode Instagram forces on some accounts. On by default: the HDR
      * window mode only lifts the black floor of the dark UI (washed-out fond) with
-     * no visible benefit. Not a block_* surface, so the permanent lock ignores it.
+     * no visible benefit.
      */
     public static boolean isForceSdr() { return getBlocked("force_sdr", true); }
 
     /** Whether Instagram is drawn in grayscale ({@link Grayscale}). Off by default; not a surface. */
     public static boolean isGrayscale() { return getBlocked("grayscale", false); }
+
+    /**
+     * Whether screenshots and screen recordings are allowed in sensitive
+     * surfaces (view-once media, disappearing DMs): FLAG_SECURE is stripped
+     * from Instagram's windows, recents thumbnails are forced on, and the
+     * screenshot-taken report to the sender is dropped (see {@link Block}).
+     * Off by default: it changes what the other side can observe, so it is
+     * strictly opt-in.
+     */
+    public static boolean isScreenshotBypassEnabled() { return getBlocked("allow_screenshots", false); }
 
     /**
      * Whether the home feed is restricted to accounts you follow (chronological
@@ -244,8 +239,7 @@ public final class Config {
      * "Impossible d'actualiser le fil", ...) are dropped. On by default: blocking
      * a surface makes Instagram see a failed request and raise one every time, so
      * they are noise the mod creates itself. All of them go, not just the errors —
-     * see {@link Toasts}. Deliberately not a {@code block_*} key: it is not a
-     * content surface, so the permanent lock must not freeze it.
+     * see {@link Toasts}. Deliberately not a {@code block_*} key.
      */
     public static boolean arePopupsHidden() { return getBlocked("hide_toasts", true); }
 
@@ -354,10 +348,8 @@ public final class Config {
 
     /**
      * Whether a surface may be used as the landing page. Landing on a tab that was
-     * hidden from the bottom bar would hand back the very surface the user removed —
-     * and under the permanent lock it was a way around a frozen toggle, since the
-     * landing picker was never locked (issue #116). So a hidden tab is not a
-     * candidate, lock or no lock.
+     * hidden from the bottom bar would hand back the very surface the user removed,
+     * so a hidden tab is not a candidate.
      */
     public static boolean isLandingAvailable(String landing) {
         if (isQuoicouviewEnabled()) return "direct".equals(landing);
@@ -367,7 +359,7 @@ public final class Config {
 
     /** Snapshot every lockable toggle's current value for the permanent lock. */
     public static void captureBaseline() {
-        HashMap<String, Boolean> baseline = new HashMap<>();
+        java.util.HashMap<String, Boolean> baseline = new java.util.HashMap<>();
         baseline.put("block_feed", storedBlocked("block_feed"));
         baseline.put("block_explore", storedBlocked("block_explore"));
         baseline.put("block_reels", storedBlocked("block_reels"));

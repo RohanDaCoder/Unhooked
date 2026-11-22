@@ -14,7 +14,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 /**
- * Finds the live Activity that owns a view, for Feurstagram's dialogs.
+ * Finds the live Activity that owns a view, for Unhooked's dialogs.
  *
  * A view's context is not always its Activity: Instagram inflates some layouts
  * ahead of time (profile header, inbox) with a wrapper around the application,

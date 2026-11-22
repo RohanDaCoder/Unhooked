@@ -121,7 +121,7 @@ class ResponseFilterTests(unittest.TestCase):
         (cls.build / "Harness.java").write_text(HARNESS)
         (cls.build / "Config.java").write_text("package com.feurstagram.extension; class Config { static boolean block=true;"
             + "static boolean isFollowingFeedOnly() { return true; }"
-            + "static boolean getBlocked(String key, boolean value) { return value; }"
+            + "static boolean getBlocked(String key, boolean value) { return value; } static boolean isScreenshotBypassEnabled() { return false; }"
             + "".join(f"static boolean is{x}Blocked() {{ return block; }}" for x in
                       ("Feed", "Stories", "Explore", "Reels", "Suggested", "Ads", "Telemetry", "Comments")) + "}")
         (cls.build / "DebugBridge.java").write_text("package com.feurstagram.extension; class DebugBridge {"

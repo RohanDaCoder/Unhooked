@@ -17,11 +17,11 @@ import java.util.List;
 import java.util.Map;
 
 /**
- * Development-only ADB bridge: drives Feurstagram's settings from a shell instead
+ * Development-only ADB bridge: drives Unhooked's settings from a shell instead
  * of from the on-screen panel.
  *
  * Only compiled into the APK when the build enables the "Debug bridge" patch
- * ({@code ./build.sh … --debug}); nothing calls {@link #install} otherwise, so a
+ * (`-Pdebug`); nothing calls {@link #install} otherwise, so a
  * release build carries the class but never registers anything.
  *
  * It registers an exported {@link BroadcastReceiver} on the application context,
@@ -51,12 +51,12 @@ import java.util.Map;
  */
 public final class DebugBridge {
 
-    public static final String TAG = "FeurDebug";
+    public static final String TAG = "UnhookedDebug";
 
     private static final String PREFIX = "com.feurstagram.debug.";
 
     /** Same store {@link Config} writes to. */
-    private static final String PREFS = "feurstagram_prefs";
+    private static final String PREFS = "unhooked_prefs";
 
     private static final String LANDING_KEY = "landing_page";
 
@@ -146,10 +146,10 @@ public final class DebugBridge {
      * Version {@link UpdateChecker} should believe is installed, or null to use the
      * real one. A debug build reports something older than any release so the whole
      * update flow — notes, download progress, install prompt — can be exercised
-     * against the live GitHub release instead of waiting for a new one to exist.
+     * against the live GitLab release instead of waiting for a new one to exist.
      * Null in a release build, because nothing installs this class there.
      */
-    private static final String PRETEND_VERSION = "1.0.0.0.0";
+    private static final String PRETEND_VERSION = "0.0.0";
 
     /** @see #PRETEND_VERSION */
     public static String pretendInstalledVersion() {
@@ -244,7 +244,7 @@ public final class DebugBridge {
                 return intro();
             case "TRACE":
                 sNetworkTrace = intent.getBooleanExtra("value", !sNetworkTrace);
-                return "network trace " + (sNetworkTrace ? "on (logcat -s FeurNet:I)" : "off");
+                return "network trace " + (sNetworkTrace ? "on (logcat -s UnhookedNet:I)" : "off");
             case "CAPTURE":
                 sCapture = intent.getStringExtra("path");
                 sCaptureLeft = intent.getIntExtra("count", 1);
@@ -262,9 +262,9 @@ public final class DebugBridge {
 
     /**
      * {@code --es key <pref> --ez value <bool>} (or {@code --es value <string>}
-     * for {@code landing_page}). Writes go through {@link Config} so the
-     * permanent lock is honoured exactly as it is from the UI; add
-     * {@code --ez force true} to write straight to the store and bypass it.
+     * for {@code landing_page}). Writes go through {@link Config}, exactly as
+     * from the UI; add {@code --ez force true} to write straight to the store
+     * and bypass it.
      */
     private static String set(Intent intent) {
         String key = intent.getStringExtra("key");
@@ -325,7 +325,6 @@ public final class DebugBridge {
         // a default, and getLandingPage() can override what is on disk.
         out.append("--- effective ---\n");
         out.append("landing_page=").append(Config.getLandingPage()).append('\n');
-        out.append("hardcore_mode=").append(Config.isHardcoreMode()).append('\n');
         out.append("pretend_installed_version=").append(pretendInstalledVersion()).append('\n');
         return out.toString();
     }
@@ -687,8 +686,7 @@ public final class DebugBridge {
     }
 
     /**
-     * Wipe every stored preference, permanent lock included, so a lock-related
-     * test can be run again without reinstalling the app.
+     * Wipe every stored preference, so a test can be run again from a clean slate.
      */
     private static String reset() {
         SharedPreferences prefs = prefs();
