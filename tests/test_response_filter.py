@@ -17,7 +17,7 @@ CONTENT = set("feed_items items items_with_ads tray reels reels_media medias med
 PAGING = set("more_available has_more has_next_page is_more_available more_available_ad_media".split())
 
 HARNESS = r'''
-package com.unhooked.extension;
+package com.feurstagram.extension;
 import java.io.*;
 import java.net.URI;
 import java.nio.*;
@@ -108,7 +108,7 @@ class ResponseFilterTests(unittest.TestCase):
     def setUpClass(cls):
         cls.tmp = tempfile.TemporaryDirectory()
         cls.build = Path(cls.tmp.name)
-        src = ROOT / "extensions/extension/src/main/java/com/unhooked/extension"
+        src = ROOT / "extensions/extension/src/main/java/com/feurstagram/extension"
         for name in ("JsonContentFilter.java", "Block.java", "ResponseFilter.java", "LimitFeed.java", "Ghost.java",
                      "Comments.java"):
             text = (src / name).read_text()
@@ -119,12 +119,12 @@ class ResponseFilterTests(unittest.TestCase):
                                 "static int responseStatus(Object response) { return ((Harness.Response)response).status; }")
             (cls.build / name).write_text(text)
         (cls.build / "Harness.java").write_text(HARNESS)
-        (cls.build / "Config.java").write_text("package com.unhooked.extension; class Config { static boolean block=true;"
+        (cls.build / "Config.java").write_text("package com.feurstagram.extension; class Config { static boolean block=true;"
             + "static boolean isFollowingFeedOnly() { return true; }"
             + "static boolean getBlocked(String key, boolean value) { return value; } static boolean isScreenshotBypassEnabled() { return false; }"
             + "".join(f"static boolean is{x}Blocked() {{ return block; }}" for x in
                       ("Feed", "Stories", "Explore", "Reels", "Suggested", "Ads", "Telemetry", "Comments")) + "}")
-        (cls.build / "DebugBridge.java").write_text("package com.unhooked.extension; class DebugBridge {"
+        (cls.build / "DebugBridge.java").write_text("package com.feurstagram.extension; class DebugBridge {"
             "static boolean isNetworkTraceEnabled() { return false; }"
             "static void recordResponse(String p,int s,long r,long d,int n) { }"
             "static boolean shouldCapture(String p) { return false; }"
@@ -142,7 +142,7 @@ class ResponseFilterTests(unittest.TestCase):
 
     def filter_many(self, inputs):
         encoded = "".join(f"{size} {base64.b64encode(raw).decode()}\n" for size, raw in inputs)
-        result = subprocess.run([self.java, "-cp", str(self.build), "com.unhooked.extension.Harness"],
+        result = subprocess.run([self.java, "-cp", str(self.build), "com.feurstagram.extension.Harness"],
                                 input=encoded, text=True, capture_output=True, check=True)
         return [base64.b64decode(line) for line in result.stdout.splitlines()]
 
@@ -195,7 +195,7 @@ class ResponseFilterTests(unittest.TestCase):
             self.assertEqual(second, {"items": [], "paging_info": {"more_available": False}, "status": "ok"})
 
     def test_response_lifecycle(self):
-        subprocess.run([self.java, "-cp", str(self.build), "com.unhooked.extension.Harness", "lifecycle"], check=True)
+        subprocess.run([self.java, "-cp", str(self.build), "com.feurstagram.extension.Harness", "lifecycle"], check=True)
 
 
 if __name__ == "__main__":

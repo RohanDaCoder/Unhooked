@@ -12,14 +12,14 @@ ROOT = Path(__file__).resolve().parents[1]
 
 class ReleaseVersionTests(unittest.TestCase):
     def test_numeric_revision_update_and_future_bases(self):
-        source = ROOT / 'extensions/extension/src/main/java/com/unhooked/extension'
+        source = ROOT / 'extensions/extension/src/main/java/com/feurstagram/extension'
         updater = (source / 'UpdateChecker.java').read_text()
         methods = []
         for signature in ('static String normalize', 'static boolean isNewer', 'private static int parse'):
             match = re.search(r'    ' + re.escape(signature) + r'\(.*?\n    }', updater, re.S)
             self.assertIsNotNone(match)
             methods.append(match.group(0))
-        harness = '''package com.unhooked.extension;
+        harness = '''package com.feurstagram.extension;
 public class RevisionHarness {
 ''' + '\n'.join(methods) + '''
     static void check(boolean value) { if (!value) throw new AssertionError(); }
@@ -44,7 +44,7 @@ public class RevisionHarness {
             temp = Path(directory)
             (temp / 'RevisionHarness.java').write_text(harness)
             subprocess.run([javac, '-d', directory, str(source / 'ReleaseVersion.java'), str(temp / 'RevisionHarness.java')], check=True)
-            subprocess.run([java, '-cp', directory, 'com.unhooked.extension.RevisionHarness'], check=True)
+            subprocess.run([java, '-cp', directory, 'com.feurstagram.extension.RevisionHarness'], check=True)
 
 
 if __name__ == '__main__':
