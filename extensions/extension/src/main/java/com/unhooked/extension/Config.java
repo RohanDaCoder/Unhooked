@@ -21,6 +21,12 @@ public final class Config {
      */
     private static boolean sNeedsRestart;
 
+    /**
+     * Snapshot of every lockable toggle at the start of the current settings
+     * session (see {@link #captureBaseline}); what the permanent lock freezes.
+     */
+    private static java.util.HashMap<String, Boolean> sBaseline;
+
     private Config() {}
 
     /** Resolve the process Application context via ActivityThread, or null. */
@@ -353,7 +359,7 @@ public final class Config {
 
     /** Snapshot every lockable toggle's current value for the permanent lock. */
     public static void captureBaseline() {
-        HashMap<String, Boolean> baseline = new HashMap<>();
+        java.util.HashMap<String, Boolean> baseline = new java.util.HashMap<>();
         baseline.put("block_feed", storedBlocked("block_feed"));
         baseline.put("block_explore", storedBlocked("block_explore"));
         baseline.put("block_reels", storedBlocked("block_reels"));
