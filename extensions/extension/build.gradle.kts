@@ -3,5 +3,5 @@ extension {
 }
 
 android {
-    namespace = "com.unhooked.extension"
+    namespace = "com.feurstagram.extension"
 }
