@@ -1,6 +1,8 @@
 package com.unhooked.extension;
 
 import android.app.Dialog;
+import android.app.Activity;
+import android.app.Application;
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
@@ -18,10 +20,12 @@ import android.graphics.drawable.Drawable;
 import android.graphics.drawable.LayerDrawable;
 import android.net.Uri;
 import android.os.Build;
+import android.os.Bundle;
 import android.os.Environment;
 import android.os.Handler;
 import android.os.Looper;
 import android.util.TypedValue;
+import android.util.Log;
 import android.view.Gravity;
 import android.view.View;
 import android.view.ViewGroup;
@@ -41,10 +45,15 @@ import java.io.InputStream;
 import java.io.OutputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.lang.ref.WeakReference;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Locale;
 import java.util.Scanner;
+import java.util.Set;
+import java.util.Collections;
+import java.util.WeakHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 /**
  * Checks GitLab for a newer Unhooked release and, if found, shows what changed
@@ -78,7 +87,10 @@ public final class UpdateChecker implements Runnable {
     /** Where the download lands (app-specific external dir, no permission needed). */
     private static final String UPDATE_FILE_NAME = "unhooked-update.apk";
 
-    private static boolean checked;
+    private static boolean launchWatcherInstalled;
+    private static final AtomicBoolean automaticCheckRunning = new AtomicBoolean();
+    private static WeakReference<Activity> foregroundActivity = new WeakReference<>(null);
+    private static WeakReference<Dialog> availablePrompt = new WeakReference<>(null);
     private static boolean whatsNewChecked;
 
     /**
@@ -98,12 +110,61 @@ public final class UpdateChecker implements Runnable {
         this.manual = manual;
     }
 
-    /** Kick off a one-shot background check if enabled. Runs at most once per process. */
+    /** Install launch observation once, including returns to a still-running app. */
     public static void check(Context context) {
-        if (context == null || checked) return;
-        checked = true;
-        if (!Config.isAutoUpdateEnabled()) return;
-        new Thread(new UpdateChecker(context, false)).start();
+        if (!(context instanceof Activity) || launchWatcherInstalled) return;
+        Activity activity = (Activity) context;
+        launchWatcherInstalled = true;
+        foregroundActivity = new WeakReference<>(activity);
+        activity.getApplication().registerActivityLifecycleCallbacks(new LaunchWatcher(activity));
+        checkAutomatically(activity);
+    }
+
+    private static void checkAutomatically(Activity activity) {
+        if (!Config.isAutoUpdateEnabled() || !automaticCheckRunning.compareAndSet(false, true)) return;
+        if (DebugBridge.isNetworkTraceEnabled()) Log.i("UnhookedUpdate", "automatic check started");
+        new Thread(new UpdateChecker(activity, false), "Unhooked-update-check").start();
+    }
+
+    private static final class LaunchWatcher implements Application.ActivityLifecycleCallbacks {
+        private final Set<Activity> started = Collections.newSetFromMap(new WeakHashMap<>());
+        private boolean foreground = true;
+        private boolean checkOnResume;
+
+        LaunchWatcher(Activity initial) {
+            // The tab-bar hook may run before or after the first onStart. A set
+            // avoids counting that same activity twice in either ordering.
+            started.add(initial);
+        }
+
+        @Override public void onActivityStarted(Activity activity) {
+            if (!foreground && started.isEmpty()) {
+                foreground = true;
+                checkOnResume = true;
+            }
+            started.add(activity);
+        }
+
+        @Override public void onActivityResumed(Activity activity) {
+            foregroundActivity = new WeakReference<>(activity);
+            if (checkOnResume) {
+                checkOnResume = false;
+                checkAutomatically(activity);
+            }
+        }
+
+        @Override public void onActivityPaused(Activity activity) {
+            if (foregroundActivity.get() == activity) foregroundActivity.clear();
+        }
+
+        @Override public void onActivityStopped(Activity activity) {
+            started.remove(activity);
+            if (started.isEmpty() && !activity.isChangingConfigurations()) foreground = false;
+        }
+
+        @Override public void onActivityDestroyed(Activity activity) { started.remove(activity); }
+        @Override public void onActivityCreated(Activity activity, Bundle state) {}
+        @Override public void onActivitySaveInstanceState(Activity activity, Bundle state) {}
     }
 
     /**
@@ -129,12 +190,24 @@ public final class UpdateChecker implements Runnable {
                 return;
             }
 
-            String installed = ownVersion();
-            if (isNewer(normalize(tag), installed)) {
+            String installed = installedVersion(context);
+            boolean newer = isNewer(normalize(tag), installed);
+            // Remembered for the red dot on the settings button, whatever happens next.
+            Config.setLatestKnownRelease(newer ? tag : null);
+            ProfileSettingsButton.refreshBadges();
+            if (newer) {
+                // The automatic page comes up at most once a day; the dot stays.
+                if (!manual && !isPromptDue()) return;
                 final String apkUrl = extractApkUrl(body, isCloneBuild());
                 final String notes = extractReleaseBody(body);
                 final long size = extractApkSize(body, isCloneBuild());
-                ui.post(() -> showPrompt(context, new Release(tag, notes, apkUrl, size), installed));
+                ui.post(() -> {
+                    Context target = manual ? context : foregroundActivity.get();
+                    if (target instanceof Activity
+                            && !((Activity) target).isFinishing() && !((Activity) target).isDestroyed()) {
+                        showPrompt(target, new Release(tag, notes, apkUrl, size), installed);
+                    }
+                });
             } else if (manual) {
                 ui.post(() -> toast("Unhooked is up to date (" + installed + ")"));
             }
@@ -142,13 +215,20 @@ public final class UpdateChecker implements Runnable {
             // Network/parse failures are non-fatal: silent for auto checks,
             // reported for manual ones.
             if (manual) ui.post(() -> toast("Update check failed"));
+        } finally {
+            if (!manual) {
+                automaticCheckRunning.set(false);
+                if (DebugBridge.isNetworkTraceEnabled()) Log.i("UnhookedUpdate", "automatic check finished");
+            }
         }
     }
 
     private static String fetch(String url) throws Exception {
         HttpURLConnection connection = (HttpURLConnection) new URL(url).openConnection();
         connection.setRequestProperty("User-Agent", USER_AGENT);
-        connection.setRequestProperty("Accept", "application/json");
+        connection.setRequestProperty("Accept", "application/vnd.github+json");
+        connection.setUseCaches(false);
+        connection.setRequestProperty("Cache-Control", "no-cache");
         connection.setConnectTimeout(10000);
         connection.setReadTimeout(10000);
         try (InputStream input = connection.getInputStream();
@@ -315,8 +395,8 @@ public final class UpdateChecker implements Runnable {
         return value.replace('-', '.');
     }
 
-    /** This build's Unhooked version, stamped at build time (e.g. "1.2.0"). */
-    private static String ownVersion() {
+    /** Installed Unhooked release, including a revision when assigned. "0" on failure. */
+    private static String installedVersion(Context context) {
         // A debug build reports an ancient version so the whole update flow can be
         // exercised against the real release. Always null in a release build.
         String pretend = DebugBridge.pretendInstalledVersion();
@@ -325,14 +405,51 @@ public final class UpdateChecker implements Runnable {
     }
 
     /**
-     * The installed Instagram versionName (e.g. "446.0.0.49.77"), for display
-     * only — update decisions use {@link #ownVersion}. Never the debug
-     * pretence.
+     * Whether the last check (automatic or manual) found a release newer than the
+     * one running. Read from the stored tag, so it holds across launches without a
+     * network call, and goes false by itself once that release is installed.
+     */
+    static boolean isUpdatePending() {
+        String latest = Config.getLatestKnownRelease();
+        Context app = Config.getAppContext();
+        if (latest == null || app == null) return false;
+        return isNewer(normalize(latest), installedVersion(app));
+    }
+
+    /** The pending release's version ("456.0.0.24.78"), or null when up to date. */
+    static String pendingVersion() {
+        return isUpdatePending() ? normalize(Config.getLatestKnownRelease()) : null;
+    }
+
+    /**
+     * Whether the automatic "Update available" page may come up: not yet today.
+     * A calendar day rather than 24 hours, so someone who opens the app every
+     * morning sees it every morning, not every other one.
+     */
+    private static boolean isPromptDue() {
+        return Config.getUpdatePromptDay() != today();
+    }
+
+    /** Today's local date as yyyyddd (year and day of the year). */
+    static int today() {
+        java.util.Calendar now = java.util.Calendar.getInstance();
+        return now.get(java.util.Calendar.YEAR) * 1000 + now.get(java.util.Calendar.DAY_OF_YEAR);
+    }
+
+    /** Open the "Update available" page for the pending release, from the settings. */
+    static void openPendingUpdate(Context context) {
+        if (context == null) return;
+        new Thread(new UpdateChecker(context, true), "Unhooked-update-open").start();
+    }
+
+    /**
+     * The installed release identity, never the debug pretence. Package metadata
+     * stays Instagram's; only the updater and "What's new" use our revision tag.
      */
     static String instagramVersion(Context context) {
         try {
             PackageManager pm = context.getPackageManager();
-            return pm.getPackageInfo(context.getPackageName(), 0).versionName;
+            return ReleaseVersion.forInstagram(pm.getPackageInfo(context.getPackageName(), 0).versionName);
         } catch (Throwable t) {
             return null;
         }
@@ -372,7 +489,7 @@ public final class UpdateChecker implements Runnable {
     public static void checkWhatsNew(final Context context) {
         if (context == null || whatsNewChecked) return;
         whatsNewChecked = true;
-        final String installed = ownVersion();
+        final String installed = installedVersion(context);
         String seen = Config.getLastSeenVersion();
         if (seen == null) {
             Config.setLastSeenVersion(installed);
@@ -471,11 +588,16 @@ public final class UpdateChecker implements Runnable {
 
     private static void showPrompt(Context context, Release release, String installed) {
         try {
+            Dialog existing = availablePrompt.get();
+            if (updateInFlight || (existing != null && existing.isShowing())) return;
             Settings.Page page = Settings.newPage(context);
             Settings.addPageTitle(page, "Update available",
                     "Unhooked " + release.tag + "  ·  you have " + installed);
 
             final Dialog dialog = Settings.newPageDialog(context, page.root);
+            dialog.setOnDismissListener(d -> {
+                if (availablePrompt.get() == dialog) availablePrompt.clear();
+            });
 
             if (release.notes != null) {
                 LinearLayout notes = new LinearLayout(context);
@@ -526,6 +648,8 @@ public final class UpdateChecker implements Runnable {
             page.addAction(update);
 
             dialog.show();
+            availablePrompt = new WeakReference<>(dialog);
+            Config.setUpdatePromptDay(today());
         } catch (Throwable ignored) {
         }
     }

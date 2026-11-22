@@ -17,11 +17,16 @@ public final class Hiders {
 
     private Hiders() {}
 
+    /** The fully Compose inbox bypasses list-adapter hooks and cannot host the native stories view. */
+    public static boolean useComposeInbox(boolean nativeChoice) {
+        return nativeChoice && !Config.isQuoicouviewEnabled() && !Config.isNotesBlocked();
+    }
+
     /** Install every UI hider and the landing redirect on the tab-bar root. */
     public static void installAll(ViewGroup root) {
         if (root == null) return;
         ViewTreeObserver observer = root.getViewTreeObserver();
-        // Notes tray, Instants entry-points.
+        // Notes tray (also taken out of the inbox's list, see onListUpdate), Instants entry-points.
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "block_notes", "cf_hub_recycler_view"));
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "block_instants",
                 "creation_entrypoint", "direct_quick_snap_consumption_preview"));
@@ -31,6 +36,11 @@ public final class Hiders {
         // an unscoped search could hide that badge instead.
         observer.addOnGlobalLayoutListener(new VisibilityHider(root, "block_notifications",
                 false, false, "action_bar_buttons_container_right", "notification"));
+        // On large screens that button is a tab of the side rail.
+        observer.addOnGlobalLayoutListener(new VisibilityHider(root, "block_notifications",
+                false, false, "ls_nav_bar", "news_tab"));
+        // Threads button in the profile header.
+        observer.addOnGlobalLayoutListener(new ThreadsButtonHider(root));
         // Bottom-navigation icons, each shown/hidden independently. These use the
         // inverted "nav_show_<tab>" preference (true = shown). Home has its own
         // hider: it carries the settings gesture, so it may only go when another
@@ -65,11 +75,12 @@ public final class Hiders {
      * Called by Instagram's Back handling with the depth of its tab history (the
      * tabs Back walks back through, oldest first): the depth to act on.
      *
-     * With the Home icon hidden the history still starts on Home, where Instagram
-     * always starts, and Back from the first tab shown would walk back onto the
-     * hidden feed. A hidden Home is not counted, so Back from that tab leaves the
-     * app, as Back from Home does. Instagram's own start is left alone: starting
-     * elsewhere changes how it presents stories opened from Messages.
+     * With the Home icon hidden (the toggle, or Quoicouview mode) the history
+     * still starts on Home, where Instagram always starts, and Back from the
+     * first tab shown would walk back onto the hidden feed. A hidden Home is not
+     * counted, so Back from that tab leaves the app, as Back from Home does.
+     * Instagram's own start is left alone: starting elsewhere changes how it
+     * presents stories opened from Messages.
      */
     public static int backHistoryDepth(java.util.List<?> history, int depth) {
         try {
@@ -122,15 +133,63 @@ public final class Hiders {
         return null;
     }
 
-    /** The bottom tab bar in the window holding {@code view}, or null if it is not laid out. */
+    /**
+     * The bar holding the tabs in the window of {@code view}, or null if it is not
+     * laid out: the bottom bar, or on large screens (tablets, unfolded phones) the
+     * side rail, where the bottom bar stays in the layout, empty (issue #160).
+     */
     static ViewGroup tabBar(View view) {
         if (view == null) return null;
         Context context = view.getContext();
         View window = view.getRootView();
         if (context == null || window == null) return null;
-        int id = resolveId(context, "tab_bar");
+        ViewGroup bottom = barById(window, context, "tab_bar");
+        if (bottom != null && bottom.getChildCount() > 0) return bottom;
+        ViewGroup rail = barById(window, context, "ls_nav_bar");
+        return rail != null && rail.getChildCount() > 0 ? rail : bottom;
+    }
+
+    private static ViewGroup barById(View window, Context context, String name) {
+        int id = resolveId(context, name);
         View bar = id == 0 ? null : window.findViewById(id);
         return bar instanceof ViewGroup ? (ViewGroup) bar : null;
+    }
+
+    /**
+     * Whether a row of a list is the Notes tray. The tray's list model is
+     * obfuscated, so the Notes tray patch rewrites this body with a check for it.
+     */
+    static boolean isNotesRow(Object row) {
+        return false;
+    }
+
+    /**
+     * Called with every list update an {@code IgRecyclerViewAdapter} applies: takes
+     * the Notes tray out when Notes are blocked. Instagram draws that row either
+     * around {@code cf_hub_recycler_view} or, on some accounts, with Compose and no
+     * resource id at all, so the row itself goes rather than a view (issue #144).
+     */
+    public static void onListUpdate(Object update) {
+        try {
+            if (update == null || !Config.isNotesBlocked()) return;
+            java.lang.reflect.Field field = Quoicouview.updateList(update);
+            if (field == null) return;
+            @SuppressWarnings("unchecked")
+            java.util.List<Object> rows = (java.util.List<Object>) field.get(update);
+            if (rows == null) return;
+            java.util.List<Object> kept = null;
+            for (int i = 0; i < rows.size(); i++) {
+                Object row = rows.get(i);
+                if (isNotesRow(row)) {
+                    if (kept == null) kept = new java.util.ArrayList<>(rows.subList(0, i));
+                } else if (kept != null) {
+                    kept.add(row);
+                }
+            }
+            if (kept != null) field.set(update, kept);
+        } catch (Throwable ignored) {
+            // the list goes through as Instagram built it
+        }
     }
 
     /** A tab's resource name ("feed_tab", "direct_tab", ...), or null. */
@@ -160,13 +219,65 @@ public final class Hiders {
         return false;
     }
 
+    private static boolean commentHiderInstalled;
+
+    /**
+     * The story viewer's comment (bubble) button is bound by a component that
+     * keeps no flag of its own: while comments are blocked it is taken off the
+     * screen on every layout pass of any window that has one.
+     */
+    static void installCommentButtonHider() {
+        if (commentHiderInstalled || !Comments.hidden()) return;
+        commentHiderInstalled = true;
+        Windows.add(root -> root.getViewTreeObserver().addOnGlobalLayoutListener(() -> hideCommentButtons(root)));
+    }
+
+    private static int storyCommentButtonId = -1;
+    private static int commentComposerId = -1;
+
+    /**
+     * Comment controls with no flag of their own: the story viewer's comment
+     * (bubble) button, and the "Add a comment…" bar under a reel opened on its own
+     * (with its row, which only holds that bar and a camera shortcut).
+     */
+    private static void hideCommentButtons(View root) {
+        try {
+            if (storyCommentButtonId == -1) {
+                storyCommentButtonId = resolveId(root.getContext(), "reel_viewer_comments_button");
+                commentComposerId = resolveId(root.getContext(), "comment_composer_inner_layout");
+            }
+            hide(storyCommentButtonId == 0 ? null : root.findViewById(storyCommentButtonId));
+            View composer = commentComposerId == 0 ? null : root.findViewById(commentComposerId);
+            if (composer != null && composer.getParent() instanceof ViewGroup
+                    && ((ViewGroup) composer.getParent()).getChildCount() == 1) {
+                hide((View) composer.getParent());
+            } else {
+                hide(composer);
+            }
+        } catch (Throwable ignored) {
+            // the controls stay
+        }
+    }
+
+    private static void hide(View view) {
+        if (view != null && view.getVisibility() != View.GONE) view.setVisibility(View.GONE);
+    }
+
     /**
      * The tab whose long-press opens the settings: Home while it is on the bar,
-     * otherwise the first icon still shown. Null until the bar is laid out.
+     * otherwise Messages in Quoicouview mode and the first icon still shown out of
+     * it. Null until the bar is laid out.
      */
     static View settingsTab(View anyView) {
         ViewGroup bar = tabBar(anyView);
         if (bar == null) return null;
+        // Messages is the main page there, wherever the layout puts its icon.
+        if (Config.isQuoicouviewEnabled()) {
+            for (int i = 0; i < bar.getChildCount(); i++) {
+                View tab = bar.getChildAt(i);
+                if ("direct_tab".equals(tabName(tab))) return tab;
+            }
+        }
         View home = null;
         for (int i = 0; i < bar.getChildCount(); i++) {
             View tab = bar.getChildAt(i);
@@ -180,6 +291,51 @@ public final class Hiders {
             if (key != null && !"feed_tab".equals(name) && Config.isNavTabShown(key)) return tab;
         }
         return home;
+    }
+
+    /**
+     * Hides the Threads button of the profile header. It has no id of its own, so
+     * it is the button of the header's right-hand group whose accessibility label
+     * names Threads (a brand name, left untranslated: "Voir le profil sur
+     * Threads", "View profile on Threads"). Only views hidden here are shown again.
+     */
+    static final class ThreadsButtonHider implements ViewTreeObserver.OnGlobalLayoutListener {
+        private final ViewGroup root;
+        private final java.util.Set<View> hidden =
+                java.util.Collections.newSetFromMap(new java.util.WeakHashMap<View, Boolean>());
+
+        ThreadsButtonHider(ViewGroup root) {
+            this.root = root;
+        }
+
+        @Override
+        public void onGlobalLayout() {
+            try {
+                boolean block = Config.isThreadsButtonBlocked();
+                if (!block) {
+                    for (View view : hidden) view.setVisibility(View.VISIBLE);
+                    hidden.clear();
+                    return;
+                }
+                Context context = root.getContext();
+                int groupId = resolveId(context, "right_action_bar_buttons");
+                View window = root.getRootView();
+                View group = groupId == 0 || window == null ? null : window.findViewById(groupId);
+                if (!(group instanceof ViewGroup)) return;
+                ViewGroup buttons = (ViewGroup) group;
+                for (int i = 0; i < buttons.getChildCount(); i++) {
+                    View button = buttons.getChildAt(i);
+                    CharSequence label = button.getContentDescription();
+                    if (label != null && label.toString().contains("Threads")
+                            && button.getVisibility() != View.GONE) {
+                        button.setVisibility(View.GONE);
+                        hidden.add(button);
+                    }
+                }
+            } catch (Throwable ignored) {
+                // Never let a hider take Instagram down.
+            }
+        }
     }
 
     /** Shows or hides the Home icon on every layout pass; see {@link #isHomeHidden}. */
@@ -256,8 +412,7 @@ public final class Hiders {
                 if (scopeView == null) return; // container not on this screen; leave everything alone
                 searchRoot = scopeView;
             }
-            // Nav icons go through Config, which knows the Home icon may only
-            // hide while another icon stays to carry the settings gesture.
+            // Nav icons go through Config, which knows the ones a mode forces.
             boolean pref = key.startsWith("nav_show_") ? Config.isNavTabShown(key)
                     : Config.getBlocked(key, defaultValue);
             boolean hidden = invert ? !pref : pref; // invert: pref true = shown
@@ -328,7 +483,9 @@ public final class Hiders {
 
     /**
      * Redirects to the chosen landing surface (search/direct/profile) once per
-     * tab-bar build, then detaches. "home" needs no redirect.
+     * tab-bar build, then detaches. "home" needs no redirect, unless the Home icon
+     * is hidden: the app would open on a page that is off the bar, so it moves on
+     * to the first tab that is shown.
      */
     static final class LandingWatcher implements ViewTreeObserver.OnGlobalLayoutListener {
         private static final int MAX_ATTEMPTS = 30;

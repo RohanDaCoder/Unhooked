@@ -27,7 +27,7 @@ stages:
 variables:
   GRADLE_OPTS: "-Dorg.gradle.daemon=false -Dorg.gradle.caching=true"
   ANDROID_HOME: "/opt/android-sdk"
-  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/454.0.0.13.77/base-454.apkm"
+  INPUT_APK_URL: "https://gitlab.com/api/v4/projects/86891782/packages/generic/unhooked-base/456.0.0.53.78/base-456.apkm"
 
 cache:
   key: unhooked-main

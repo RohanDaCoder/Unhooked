@@ -5,19 +5,17 @@ import android.util.Log;
 import java.io.IOException;
 import java.net.URI;
 
-/**
- * Network content blocking, invoked from Instagram's TigonServiceLayer just
- * after each request URI is materialised. Throwing an IOException there makes
- * Instagram treat the request as a network failure and the surface stays empty.
- *
- * Toggleable blocks are gated on {@link Config}; analytics and commerce
- * endpoints are always blocked.
- */
+/** Content policy and parse-level filtering. Requests always use Instagram's transport. */
 public final class Block {
 
     private Block() {}
 
-    /** Account/user recommendation surfaces ("Suggested for you", chaining, ...). */
+    /**
+     * Account/user recommendation surfaces ("Suggested for you", chaining, ...).
+     * {@code /discover/surface_with_su/} is deliberately absent: the same response
+     * carries a profile's mutual followers, and its "Mutual" tab never loads once
+     * the suggestions in it are emptied.
+     */
     private static final String[] SUGGESTED = {
             "/discover/ayml/",
             "/discover/sectioned_ayml/",
@@ -26,7 +24,6 @@ public final class Block {
             "/discover/suggested_businesses/",
             "/discover/recs_from_friends_suggestions/",
             "/discover/recs_from_friends_user_info/",
-            "/discover/surface_with_su/",
             "/discover/fetch_suggestion_details/",
             "/discover/account_discovery/",
             "/discover/reshare_suggestions/",
@@ -72,6 +69,9 @@ public final class Block {
     /** Ad-delivery surfaces injected into feed, stories, profile, DMs, explore, commerce. */
     private static final String[] ADS = {
             "/api/v1/ads/",
+            // Story ads, injected between the stories of the people you follow. No
+            // trailing slash: the family has a "_www" sibling.
+            "/feed/injected_reels_media",
             "/feed/async_ads_ranking/",
             "/feed/contextual_multi_ads/",
             "/feed/shop_everything_feed_of_ads",
@@ -87,29 +87,52 @@ public final class Block {
             "/commerce/product_collections/ads_collection_page/",
     };
 
-    /** Main hook: throw if this request should be blocked. */
-    public static void throwIfBlocked(URI uri) throws IOException {
+    /**
+     * Analytics sinks, cancelled while "Block telemetry" is on (the default). Only
+     * the batches of client events and the ad-measurement script: login, two-factor,
+     * integrity and security checks, configuration and every content request keep
+     * going, and read receipts and story views are left to ghost mode.
+     * Measured on 456: Pigeon/Falco event batches go to {@code <host>/pigeon_nest}
+     * or {@code <host>/logging_client_events} (graph.instagram.com, graph.facebook.com).
+     */
+    private static final String[] TELEMETRY = {
+            "/pigeon_nest",
+            "/logging_client_events",
+            // Which experiment flags the app read, uploaded as its own log.
+            "/launcher/mobileconfiglogging/",
+            // Impressions of the activity feed's rows.
+            "/news/log/",
+            // Meta's ad-measurement pixel, injected into pages of the in-app browser.
+            "/fbevents.js",
+    };
+
+    static boolean isTelemetry(String path) {
+        return path != null && containsAny(path, TELEMETRY);
+    }
+
+    /**
+     * Called by Instagram's network layer as each request starts. Content requests
+     * are never touched here (they are filtered once their response arrives); a
+     * telemetry upload is cancelled with an IOException, which Instagram's uploader
+     * treats as a network failure.
+     */
+    public static void onRequest(URI uri) throws IOException {
         if (uri == null) return;
         String path = uri.getPath();
-        if (path == null) return;
-
-        // Debug builds only (see DebugBridge): logs every path Instagram asks for,
-        // which is how a surface that started arriving over a new endpoint gets
-        // found. Always false in a release build.
-        if (DebugBridge.isNetworkTraceEnabled()) Log.i("FeurNet", path);
-
-        // --- Toggleable content blocks ---
-        if (Config.isFeedBlocked() && path.contains("/feed/timeline/")) throw blocked();
-        if (Config.isStoriesBlocked() && path.contains("/feed/reels_tray")) throw blocked();
-        if (Config.isExploreBlocked() && path.contains("/discover/topical_explore")) throw blocked();
-        if (Config.isReelsBlocked()
-                && (path.contains("/clips/home/")
-                || path.contains("/clips/discover")
-                || path.contains("/clips/get_blend_medias/"))) {
-            throw blocked();
+        boolean telemetry = Config.isTelemetryBlocked() && isTelemetry(path);
+        // Story views belong to ghost mode, never to the telemetry switch.
+        boolean storySeen = !telemetry && Ghost.isStorySeen(uri) && Ghost.hideStoryViews();
+        boolean comments = Comments.isCommentList(path) && Config.isCommentsBlocked();
+        if (DebugBridge.isNetworkTraceEnabled()) {
+            Log.i("UnhookedNet", (telemetry || storySeen || comments ? "cancel " : "request ") + uri.getHost() + " " + path);
         }
+        if (comments) throw new IOException("Comments blocked by Unhooked");
+        if (telemetry) throw new IOException("Telemetry blocked by Unhooked");
+        if (storySeen) throw new IOException("Story view hidden by Unhooked");
+        if (isOpenedReel(uri)) openedReelStarted(uri);
+
+        // Suggested / ad surfaces (request-level, before delivery).
         if (Config.isSuggestedBlocked() && containsAny(path, SUGGESTED)) throw blocked();
-        if (Config.isAdsBlocked() && containsAny(path, ADS)) throw blocked();
 
         // Screenshot bypass: drop the "screenshot taken" report Instagram sends
         // to the other side for disappearing DMs and view-once media
@@ -117,22 +140,81 @@ public final class Block {
         // notified. The local FLAG_SECURE enforcement is stripped separately by
         // the screenshot-bypass patch (see Screenshots).
         if (Config.isScreenshotBypassEnabled() && path.contains("/ephemeral_screenshot/")) throw blocked();
+        if (Config.isAdsBlocked() && containsAny(path, ADS)) throw blocked();
+    }
 
-        // --- Always-blocked analytics / commerce ---
-        // No trailing slash: the family has a "_www" sibling
-        // (/feed/injected_reels_media_www/) that a slash-terminated match misses.
-        if (path.contains("/feed/injected_reels_media")
-                || path.contains("/logging/")
-                || path.contains("/async_ads_privacy/")
-                || path.contains("/async_critical_notices/")
-                || isMediaSeen(path)
-                || path.contains("/api/v1/fbupload/")
-                || path.contains("/api/v1/stats/")
-                || path.contains("/api/v1/commerce/")
-                || path.contains("/api/v1/shopping/")
-                || path.contains("/api/v1/sellable_items/")) {
-            throw blocked();
+    // --- A reel opened on its own (a link, a share in a story or a DM) ------------
+
+    /**
+     * The reel viewer opened on one reel asks for that reel ({@code /clips/items/}
+     * with its id) and, at the same time, for the reels to scroll to after it
+     * ({@code /clips/discover/stream/}). With Reels blocked the second one comes back
+     * empty, and after a cache wipe it can land first: the viewer then has nothing
+     * at all to show and fails ("Something went wrong", issue #184), while a second
+     * tap works from the cache. So an emptied stream waits for the opened reel's own
+     * request to finish first, never longer than {@link #OPENED_REEL_WAIT_MS}.
+     */
+    private static final long OPENED_REEL_WAIT_MS = 2500L;
+    /** How long a started request counts as in flight if its end is never seen. */
+    private static final long OPENED_REEL_STALE_MS = 6000L;
+    private static final java.util.Map<URI, Long> OPENED_REELS = new java.util.HashMap<>();
+
+    static boolean isOpenedReel(URI uri) {
+        String path = uri.getPath();
+        String query = uri.getRawQuery();
+        return path != null && path.contains("/clips/items/") && query != null && query.contains("clips_media_ids");
+    }
+
+    static boolean isReelChaining(URI uri) {
+        return uri != null && uri.getPath() != null && uri.getPath().contains("/clips/discover/stream/");
+    }
+
+    private static void openedReelStarted(URI uri) {
+        synchronized (OPENED_REELS) {
+            OPENED_REELS.put(uri, System.currentTimeMillis());
         }
+    }
+
+    static void openedReelDone(URI uri) {
+        synchronized (OPENED_REELS) {
+            if (OPENED_REELS.remove(uri) != null) OPENED_REELS.notifyAll();
+        }
+    }
+
+    /** Wait (bounded) until no opened-reel request is in flight. */
+    static void awaitOpenedReels() {
+        long deadline = System.currentTimeMillis() + OPENED_REEL_WAIT_MS;
+        synchronized (OPENED_REELS) {
+            while (true) {
+                long now = System.currentTimeMillis();
+                java.util.Iterator<Long> started = OPENED_REELS.values().iterator();
+                while (started.hasNext()) {
+                    if (now - started.next() > OPENED_REEL_STALE_MS) started.remove();
+                }
+                if (OPENED_REELS.isEmpty() || now >= deadline) return;
+                try {
+                    OPENED_REELS.wait(deadline - now);
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    return;
+                }
+            }
+        }
+    }
+
+    /** Only content delivery is filtered; logging, seen, uploads and security are untouched. */
+    static boolean hidesResponse(URI uri) {
+        if (uri == null || uri.getHost() == null || uri.getPath() == null) return false;
+        String host = uri.getHost().toLowerCase(java.util.Locale.ROOT);
+        if (!host.equals("instagram.com") && !host.endsWith(".instagram.com")) return false;
+        String path = uri.getPath();
+        return (Config.isFeedBlocked() && path.contains("/feed/timeline/"))
+                || (Config.isStoriesBlocked() && path.contains("/feed/reels_tray"))
+                || (Config.isExploreBlocked() && path.contains("/discover/topical_explore"))
+                || (Config.isReelsBlocked() && (path.contains("/clips/home/")
+                    || path.contains("/clips/discover") || path.contains("/clips/get_blend_medias/")))
+                || (Config.isSuggestedBlocked() && containsAny(path, SUGGESTED))
+                || (Config.isAdsBlocked() && containsAny(path, ADS));
     }
 
     /**
@@ -144,13 +226,14 @@ public final class Block {
         if (key == null) return null;
         // A new unit starts: whatever media it wraps is parsed right after this.
         MEDIA_IS_AD.get()[0] = false;
-        boolean drop = (Config.isAdsBlocked() && equalsAny(key, AD_FEED_UNITS))
+        boolean drop = Config.isFeedBlocked()
+                || (Config.isAdsBlocked() && equalsAny(key, AD_FEED_UNITS))
                 || (Config.isSuggestedBlocked() && equalsAny(key, SUGGESTED_FEED_UNITS));
         // Debug builds only (see DebugBridge): shows every unit type the timeline
         // actually contains and whether it was dropped — the way to tell a patch
         // that no longer runs from one whose unit list is out of date.
         if (DebugBridge.isNetworkTraceEnabled()) {
-            Log.i("FeurFeed", (drop ? "drop " : "keep ") + key);
+            Log.i("UnhookedFeed", (drop ? "drop " : "keep ") + key);
         }
         return drop ? INVALID_FEED_TYPE : key;
     }
@@ -196,7 +279,7 @@ public final class Block {
     public static Object filterFeedMedia(Object media) {
         boolean drop = media != null && MEDIA_IS_AD.get()[0] && Config.isAdsBlocked();
         if (DebugBridge.isNetworkTraceEnabled()) {
-            Log.i("FeurFeed", (drop ? "drop " : "keep ")
+            Log.i("UnhookedFeed", (drop ? "drop " : "keep ")
                     + (MEDIA_IS_AD.get()[0] ? "sponsored media" : "media"));
         }
         return drop ? null : media;
@@ -219,6 +302,10 @@ public final class Block {
      * the tray response itself, so the network block cannot catch them.
      */
     public static Object filterTrayEntry(Object entry) {
+        // Not gated on the Stories block: this parser builds every story model
+        // (a profile's ring, search, highlights, links), not only the home tray's
+        // entries. The tray itself is emptied at the response level, so dropping
+        // here made every story "unavailable" once the tray was hidden (#180).
         if (entry == null || !Config.isSuggestedBlocked()) return entry;
         try {
             String getter = trayEntryTypeGetter();
@@ -226,7 +313,7 @@ public final class Block {
             Object type = entry.getClass().getMethod(getter).invoke(entry);
             boolean drop = "suggested_user".equals(String.valueOf(type));
             if (DebugBridge.isNetworkTraceEnabled()) {
-                Log.i("FeurTray", (drop ? "drop " : "keep ") + type);
+                Log.i("UnhookedTray", (drop ? "drop " : "keep ") + type);
             }
             return drop ? null : entry;
         } catch (Throwable t) {
@@ -239,10 +326,6 @@ public final class Block {
             if (option.equals(value)) return true;
         }
         return false;
-    }
-
-    private static boolean isMediaSeen(String path) {
-        return path.contains("/api/v1/media/") && path.contains("/seen");
     }
 
     private static boolean containsAny(String path, String[] needles) {
