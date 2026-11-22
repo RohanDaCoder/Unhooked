@@ -1,4 +1,3 @@
-FeurStagram==>Unhooked
-Feurstagram==>Unhooked
-feurstagram==>unhooked
-FEURSTAGRAM==>UNHOOKED
+Unhooked==>Feurstagram
+unhooked==>feurstagram
+UNHOOKED==>FEURSTAGRAM
